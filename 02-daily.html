@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>البرنامج اليومي</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+small{color:#52665a}
+</style>
+</head>
+<body>
+<header><h2>البرنامج اليومي</h2>متابعة دورة الفراخ البيضاء</header>
+<main>
+<div class="card">
+<h3>تسجيل متابعة اليوم</h3>
+<label>التاريخ</label>
+<input id="date" type="date">
+<label>درجة الحرارة °م</label>
+<input id="temp" type="number" step="0.1" placeholder="درجة الحرارة عند مستوى الطيور">
+<label>الرطوبة %</label>
+<input id="humidity" type="number" min="0" max="100">
+<label>حالة التهوية</label>
+<select id="air">
+<option>جيدة</option>
+<option>تحتاج مراجعة</option>
+<option>ضعيفة</option>
+</select>
+<label>حالة الفرشة</label>
+<select id="litter">
+<option>جافة</option>
+<option>رطبة جزئيًا</option>
+<option>رطبة وتحتاج تدخلًا</option>
+</select>
+<label>حالة الطيور</label>
+<select id="birds">
+<option>نشاط طبيعي</option>
+<option>تجمع حول مصدر الحرارة</option>
+<option>ابتعاد عن مصدر الحرارة</option>
+<option>لهاث أو صعوبة تنفس</option>
+<option>خمول أو أعراض غير طبيعية</option>
+</select>
+<label>ملاحظات</label>
+<textarea id="note" rows="3" placeholder="اكتب الملاحظات"></textarea>
+<button onclick="save()">حفظ متابعة اليوم</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>سجل المتابعات</h3>
+<div id="records">لا توجد متابعات مسجلة.</div>
+<button onclick="showRecords()">عرض السجل</button>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+function save(){
+ const temp=document.getElementById('temp').value;
+ const humidity=document.getElementById('humidity').value;
+ if(temp===''||humidity===''){
+  alert('أدخل درجة الحرارة والرطوبة');return;
+ }
+ const t=Number(temp),h=Number(humidity);
+ if(!Number.isFinite(t)||t< -10||t>60||!Number.isFinite(h)||h<0||h>100){
+  alert('راجع درجة الحرارة والرطوبة');return;
+ }
+ const d=getDB();
+ d.daily=d.daily||[];
+ d.daily.push({
+ date:document.getElementById('date').value,
+ temp:t,humidity:h,
+ air:document.getElementById('air').value,
+ litter:document.getElementById('litter').value,
+ birds:document.getElementById('birds').value,
+ note:document.getElementById('note').value.trim()
+ });
+ d.logs=d.logs||[];
+ d.logs.push({date:document.getElementById('date').value, type:'daily_check',amount:0,note:'متابعة يومية'});
+ localStorage.setItem('farm45',JSON.stringify(d));
+ document.getElementById('msg').textContent='تم حفظ المتابعة.';
+ document.getElementById('note').value='';
+ showRecords();
+}
+function showRecords(){
+ const d=getDB(),arr=d.daily||[];
+ const box=document.getElementById('records');
+ if(!arr.length){box.textContent='لا توجد متابعات مسجلة.';return;}
+ box.replaceChildren();
+ arr.slice().reverse().forEach(r=>{
+  const item=document.createElement('div');
+  item.style.cssText='border-bottom:1px solid #ddd;padding:10px 0;line-height:1.8';
+  item.textContent=r.date+' | الحرارة '+r.temp+'° | الرطوبة '+r.humidity+
+  '% | التهوية: '+r.air+' | الفرشة: '+r.litter+
+  ' | الطيور: '+r.birds+(r.note?' | '+r.note:'');
+  box.appendChild(item);
+ });
+}
+showRecords();
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مخزن العلف</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>مخزن العلف</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>رصيد المخزن</h3>
+<p>الرصيد الحالي: <b id="stock">0</b> كجم</p>
+<p>إجمالي المشتريات: <b id="total">0</b> جنيه</p>
+<p id="warning"></p>
+</div>
+<div class="card">
+<h3>تسجيل شراء علف</h3>
+<label>تاريخ الشراء</label>
+<input id="date" type="date">
+<label>نوع العلف</label>
+<select id="kind">
+<option>بادئ</option><option>نامي</option>
+<option>ناهي</option><option>نوع آخر</option>
+</select>
+<label>الكمية بالكيلو</label>
+<input id="qty" type="number" min="0.01" step="0.01">
+<label>سعر الكيلو بالجنيه</label>
+<input id="price" type="number" min="0" step="0.01">
+<label>طريقة الشراء</label>
+<select id="payment">
+<option value="cash">كاش</option>
+<option value="credit">آجل</option>
+</select>
+<label>المبلغ المدفوع الآن (جنيه)</label>
+<input id="paid" type="number" min="0" step="0.01" value="0">
+<label>اسم المورد</label>
+<input id="supplier" placeholder="اسم المورد">
+<label>ملاحظات</label>
+<input id="note" placeholder="اختياري">
+<button onclick="save()">حفظ شراء العلف</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>حركات المخزن</h3>
+<div id="records">لا توجد حركات.</div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function save(){
+ const date=document.getElementById('date').value;
+ const qty=Number(document.getElementById('qty').value);
+ const price=Number(document.getElementById('price').value);
+ const paid=Number(document.getElementById('paid').value);
+ const payment=document.getElementById('payment').value;
+ if(!date||!Number.isFinite(qty)||qty<=0||
+ !Number.isFinite(price)||price<0||
+ !Number.isFinite(paid)||paid<0){
+  alert('راجع التاريخ والكمية والسعر والمبلغ المدفوع');return;
+ }
+ const cost=qty*price;
+ if(paid>cost){
+  alert('المبلغ المدفوع أكبر من قيمة الفاتورة');return;
+ }
+ if(payment==='cash'&&Math.abs(paid-cost)>0.01){
+  alert('في الشراء الكاش أدخل كامل قيمة الفاتورة في المبلغ المدفوع');return;
+ }
+ const d=getDB();
+ d.feedPurchases=d.feedPurchases||[];
+ d.feedMoves=d.feedMoves||[];
+ d.logs=d.logs||[];
+ d.feed=Number(d.feed||0)+qty;
+ d.feed=Number(d.feed.toFixed(3));
+ d.feedPurchases.push({
+  id:Date.now(),date,kind:document.getElementById('kind').value,
+  qty,price,cost,paid,due:cost-paid,payment,
+  supplier:document.getElementById('supplier').value.trim(),
+  note:document.getElementById('note').value.trim()
+ });
+ d.feedMoves.push({
+  id:Date.now(),date,type:'purchase',qty,
+  kind:document.getElementById('kind').value
+ });
+ d.logs.push({date:date, type:'feed_purchase',amount:cost,note:payment});
+ // تسجل قيمة الفاتورة كاملة كمصروف مشتريات مرة واحدة، والخزنة تخصم المدفوع فقط.
+ d.expenses=d.expenses||[];
+ d.expenses.push({date,category:'شراء علف - '+document.getElementById('kind').value,amount:cost,note:'المورد: '+(document.getElementById('supplier').value.trim()||'غير محدد')+'؛ '+(payment==='cash'?'كاش':'آجل')});
+ d.cashLogs=d.cashLogs||[];
+ if(paid>0)d.cashLogs.unshift({date,type:'expense',category:'سداد شراء علف',amount:paid,note:'المورد: '+(document.getElementById('supplier').value.trim()||'غير محدد')});
+ d.cash=Number(d.cash||0)-paid;
+ putDB(d);
+ document.getElementById('msg').textContent=
+ 'تمت إضافة العلف للمخزن وتسجيل المدفوع والمتبقي.';
+ document.getElementById('qty').value='';
+ document.getElementById('price').value='';
+ document.getElementById('paid').value='0';
+ document.getElementById('note').value='';
+ document.getElementById('supplier').value='';
+ render();
+}
+function render(){
+ const d=getDB(),p=d.feedPurchases||[];
+ document.getElementById('stock').textContent=
+ Number(d.feed||0).toFixed(2);
+ document.getElementById('total').textContent=
+ p.reduce((s,x)=>s+x.cost,0).toFixed(2);
+ const warn=document.getElementById('warning');
+ const logs=(d.feedLogs||[]).filter(x=>x.date && (Date.parse(today())-Date.parse(x.date))>=0 && (Date.parse(today())-Date.parse(x.date))<=6*86400000);
+ const avg=logs.reduce((sum,x)=>sum+(Number(x.feed)||0),0)/7;
+ const daysLeft=avg>0?Number(d.feed||0)/avg:null;
+ warn.textContent=Number(d.feed||0)<=0?'⚠️ رصيد العلف غير كافٍ. سجّل شراء جديدًا.':
+ daysLeft!==null && daysLeft<=5?'⚠️ تنبيه: العلف يكفي نحو '+daysLeft.toFixed(1)+' يوم. اطلب شراءً جديدًا الآن.':
+ avg===0 && Number(d.feed||0)<10?'⚠️ الرصيد أقل من 10 كجم؛ سجّل الاستهلاك اليومي لتقدير موعد النفاد.':'الرصيد متاح.';
+ const box=document.getElementById('records');
+ box.replaceChildren();
+ if(!p.length){box.textContent='لا توجد حركات.';return;}
+ p.slice().reverse().forEach(x=>{
+  const div=document.createElement('div');
+  div.style.cssText='border-bottom:1px solid #ddd;padding:10px 0;line-height:1.8';
+  div.textContent=x.date+' | '+x.kind+' | '+x.qty+' كجم | قيمة '+
+  x.cost.toFixed(2)+' جنيه | مدفوع '+x.paid.toFixed(2)+
+  ' | متبقي '+x.due.toFixed(2)+' | '+(x.payment==='cash'?'كاش':'آجل')+' | المورد: '+(x.supplier||'غير محدد');
+  box.appendChild(div);
+ });
+}
+render();
+</script>
+</body>
+</html>

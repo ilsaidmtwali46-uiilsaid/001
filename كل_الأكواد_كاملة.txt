@@ -1,0 +1,2104 @@
+مزرعة جدو سيد - الأكواد الكاملة للنسخة المصححة
+كل قسم ملف HTML مستقل. احفظ الملفات العشرة في مجلد واحد كما هي.
+
+
+==========================================================================================
+الملف: 01-cycle.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بيانات الدورة</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;text-align:center;padding:16px}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select{width:100%;padding:12px;margin-top:5px;box-sizing:border-box;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px;margin-top:12px}
+a{color:#166534}
+</style>
+</head>
+<body>
+<header><h2>بيانات الدورة</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>تسجيل دورة جديدة</h3>
+<label>رقم الدورة</label>
+<input id="num" placeholder="مثال: 001">
+<label>تاريخ وصول الكتاكيت</label>
+<input id="start" type="date">
+<label>عدد الكتاكيت</label>
+<input id="birds" type="number" min="1">
+<label>سعر الكتكوت بالجنيه</label>
+<input id="price" type="number" min="0" step="0.01">
+<label>اسم المورد</label>
+<input id="supplier" placeholder="اسم المورد">
+<label>السلالة أو النوع</label>
+<input id="breed" placeholder="مثال: أبيض تسمين">
+<label>مدة الدورة بالأيام</label>
+<input id="duration" type="number" min="1" value="45">
+<button onclick="save()">حفظ بيانات الدورة</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>بيانات الدورة المحفوظة</h3>
+<div id="result">لا توجد بيانات محفوظة.</div>
+<button onclick="load()">عرض البيانات المحفوظة</button>
+</div>
+<p><a href="index.html">العودة إلى الصفحة الرئيسية</a></p>
+</main>
+<script>
+function db(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function save(){
+ const d=db();
+ const num=document.getElementById('num').value.trim();
+ const start=document.getElementById('start').value;
+ const birds=Number(document.getElementById('birds').value);
+ const price=Number(document.getElementById('price').value);
+ const duration=Number(document.getElementById('duration').value);
+ if(!num||!start||!Number.isInteger(birds)||birds<1||
+ !Number.isFinite(price)||price<0||
+ !Number.isInteger(duration)||duration<1){
+ alert('راجع رقم الدورة والتاريخ والأعداد والأسعار');return;
+ }
+ d.cycle={num,start,birds,price,
+ supplier:document.getElementById('supplier').value.trim(),
+ breed:document.getElementById('breed').value.trim(),duration};
+ d.birds=birds;
+ d.start=start;
+ d.logs=d.logs||[];
+ d.logs.push({date:start,
+ type:'new_cycle',amount:birds,note:'إنشاء الدورة '+num});
+ localStorage.setItem('farm45',JSON.stringify(d));
+ document.getElementById('msg').textContent='تم حفظ بيانات الدورة.';
+ load();
+}
+function load(){
+ const d=db(),c=d.cycle;
+ if(!c){document.getElementById('result').textContent='لا توجد بيانات محفوظة.';return;}
+ document.getElementById('result').innerHTML=
+ 'رقم الدورة: '+c.num+
+ '<br>تاريخ البداية: '+c.start+
+ '<br>عدد الكتاكيت عند الاستقبال: '+c.birds+
+ '<br>سعر الكتكوت: '+c.price+' جنيه'+
+ '<br>إجمالي ثمن الكتاكيت: '+(c.birds*c.price).toFixed(2)+' جنيه'+
+ '<br>المورد: '+(c.supplier||'—')+
+ '<br>السلالة: '+(c.breed||'—')+
+ '<br>مدة الدورة: '+c.duration+' يومًا';
+ document.getElementById('num').value=c.num;
+ document.getElementById('start').value=c.start;
+ document.getElementById('birds').value=c.birds;
+ document.getElementById('price').value=c.price;
+ document.getElementById('supplier').value=c.supplier;
+ document.getElementById('breed').value=c.breed;
+ document.getElementById('duration').value=c.duration;
+}
+load();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 02-daily.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>البرنامج اليومي</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+small{color:#52665a}
+</style>
+</head>
+<body>
+<header><h2>البرنامج اليومي</h2>متابعة دورة الفراخ البيضاء</header>
+<main>
+<div class="card">
+<h3>تسجيل متابعة اليوم</h3>
+<label>التاريخ</label>
+<input id="date" type="date">
+<label>درجة الحرارة °م</label>
+<input id="temp" type="number" step="0.1" placeholder="درجة الحرارة عند مستوى الطيور">
+<label>الرطوبة %</label>
+<input id="humidity" type="number" min="0" max="100">
+<label>حالة التهوية</label>
+<select id="air">
+<option>جيدة</option>
+<option>تحتاج مراجعة</option>
+<option>ضعيفة</option>
+</select>
+<label>حالة الفرشة</label>
+<select id="litter">
+<option>جافة</option>
+<option>رطبة جزئيًا</option>
+<option>رطبة وتحتاج تدخلًا</option>
+</select>
+<label>حالة الطيور</label>
+<select id="birds">
+<option>نشاط طبيعي</option>
+<option>تجمع حول مصدر الحرارة</option>
+<option>ابتعاد عن مصدر الحرارة</option>
+<option>لهاث أو صعوبة تنفس</option>
+<option>خمول أو أعراض غير طبيعية</option>
+</select>
+<label>ملاحظات</label>
+<textarea id="note" rows="3" placeholder="اكتب الملاحظات"></textarea>
+<button onclick="save()">حفظ متابعة اليوم</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>سجل المتابعات</h3>
+<div id="records">لا توجد متابعات مسجلة.</div>
+<button onclick="showRecords()">عرض السجل</button>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+function save(){
+ const temp=document.getElementById('temp').value;
+ const humidity=document.getElementById('humidity').value;
+ if(temp===''||humidity===''){
+  alert('أدخل درجة الحرارة والرطوبة');return;
+ }
+ const t=Number(temp),h=Number(humidity);
+ if(!Number.isFinite(t)||t< -10||t>60||!Number.isFinite(h)||h<0||h>100){
+  alert('راجع درجة الحرارة والرطوبة');return;
+ }
+ const d=getDB();
+ d.daily=d.daily||[];
+ d.daily.push({
+ date:document.getElementById('date').value,
+ temp:t,humidity:h,
+ air:document.getElementById('air').value,
+ litter:document.getElementById('litter').value,
+ birds:document.getElementById('birds').value,
+ note:document.getElementById('note').value.trim()
+ });
+ d.logs=d.logs||[];
+ d.logs.push({date:document.getElementById('date').value, type:'daily_check',amount:0,note:'متابعة يومية'});
+ localStorage.setItem('farm45',JSON.stringify(d));
+ document.getElementById('msg').textContent='تم حفظ المتابعة.';
+ document.getElementById('note').value='';
+ showRecords();
+}
+function showRecords(){
+ const d=getDB(),arr=d.daily||[];
+ const box=document.getElementById('records');
+ if(!arr.length){box.textContent='لا توجد متابعات مسجلة.';return;}
+ box.replaceChildren();
+ arr.slice().reverse().forEach(r=>{
+  const item=document.createElement('div');
+  item.style.cssText='border-bottom:1px solid #ddd;padding:10px 0;line-height:1.8';
+  item.textContent=r.date+' | الحرارة '+r.temp+'° | الرطوبة '+r.humidity+
+  '% | التهوية: '+r.air+' | الفرشة: '+r.litter+
+  ' | الطيور: '+r.birds+(r.note?' | '+r.note:'');
+  box.appendChild(item);
+ });
+}
+showRecords();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 03-feed.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التغذية والمياه</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>التغذية والمياه</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>رصيد مخزن العلف</h3>
+<p>الرصيد الحالي: <b id="stock">0</b> كجم</p>
+</div>
+<div class="card">
+<h3>تسجيل الاستهلاك اليومي</h3>
+<label>التاريخ</label>
+<input id="date" type="date">
+<label>نوع العلف</label>
+<select id="kind">
+<option>بادئ</option>
+<option>نامي</option>
+<option>ناهي</option>
+<option>نوع آخر</option>
+</select>
+<label>كمية العلف المستهلكة بالكيلو</label>
+<input id="feed" type="number" min="0.01" step="0.01">
+<label>استهلاك المياه باللتر</label>
+<input id="water" type="number" min="0" step="0.1">
+<label>ملاحظات</label>
+<textarea id="note" rows="2"></textarea>
+<button onclick="save()">حفظ الاستهلاك</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>سجل الاستهلاك</h3>
+<div id="records">لا توجد سجلات.</div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function refresh(){
+ const d=getDB();
+ document.getElementById('stock').textContent=
+ Number(d.feed||0).toFixed(2);
+ const arr=d.feedLogs||[];
+ const box=document.getElementById('records');
+ box.replaceChildren();
+ if(!arr.length){box.textContent='لا توجد سجلات.';return;}
+ arr.slice().reverse().forEach(r=>{
+  const p=document.createElement('p');
+  p.textContent=r.date+' | '+r.kind+' | علف: '+r.feed+
+  ' كجم | مياه: '+r.water+' لتر'+(r.note?' | '+r.note:'');
+  box.appendChild(p);
+ });
+}
+function save(){
+ const f=Number(document.getElementById('feed').value);
+ const w=Number(document.getElementById('water').value);
+ const date=document.getElementById('date').value;
+ if(!date||document.getElementById('feed').value===''||
+ !Number.isFinite(f)||f<=0||
+ document.getElementById('water').value===''||
+ !Number.isFinite(w)||w<0){
+  alert('أدخل التاريخ وكمية العلف والمياه بصورة صحيحة');return;
+ }
+ const d=getDB();
+ d.feed=Number(d.feed||0);
+ if(f>d.feed){
+  alert('رصيد العلف غير كافٍ. سجّل شراء العلف في المخزن أولًا.');
+  return;
+ }
+ d.feed=Number((d.feed-f).toFixed(3));
+ d.feedLogs=d.feedLogs||[];
+ const entry={
+  id:Date.now(),date,kind:document.getElementById('kind').value,
+  feed:f,water:w,note:document.getElementById('note').value.trim()
+ };
+ d.feedLogs.push(entry);
+ d.logs=d.logs||[];
+ d.logs.push({date:date, type:'feed_consumption',amount:f,note:entry.kind});
+ putDB(d);
+ document.getElementById('feed').value='';
+ document.getElementById('water').value='';
+ document.getElementById('note').value='';
+ document.getElementById('msg').textContent='تم حفظ الاستهلاك وخصمه من الرصيد.';
+ refresh();
+}
+refresh();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 04-weight.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الأوزان والنمو</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input{width:100%;box-sizing:border-box;padding:12px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>الأوزان والنمو</h2>متابعة أداء القطيع</header>
+<main>
+<div class="card">
+<h3>تسجيل عينة أوزان</h3>
+<label>تاريخ الوزن</label>
+<input id="date" type="date">
+<label>عدد الطيور التي تم وزنها</label>
+<input id="count" type="number" min="1" step="1">
+<label>إجمالي أوزان العينة بالكيلو</label>
+<input id="total" type="number" min="0.001" step="0.001">
+<label>الوزن المستهدف للطائر بالكيلو (اختياري)</label>
+<input id="target" type="number" min="0.001" step="0.001">
+<button onclick="save()">حفظ الأوزان</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>آخر نتيجة</h3>
+<div id="latest">لا توجد أوزان مسجلة.</div>
+</div>
+<div class="card">
+<h3>سجل الأوزان</h3>
+<div id="records"></div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function save(){
+ const date=document.getElementById('date').value;
+ const count=Number(document.getElementById('count').value);
+ const total=Number(document.getElementById('total').value);
+ const targetText=document.getElementById('target').value;
+ const target=targetText===''?null:Number(targetText);
+ if(!date||!Number.isInteger(count)||count<1||
+ !Number.isFinite(total)||total<=0||
+ (target!==null&&(!Number.isFinite(target)||target<=0))){
+  alert('راجع التاريخ وعدد الطيور وإجمالي الأوزان');return;
+ }
+ if(total/count>10){
+  alert('متوسط الوزن مرتفع بصورة غير معتادة. راجع وحدة الوزن والقيم.');
+  return;
+ }
+ const d=getDB();
+ d.weights=d.weights||[];
+ const avg=total/count;
+ const previous=d.weights.filter(x=>x.date<date)
+  .sort((a,b)=>b.date.localeCompare(a.date))[0];
+ const entry={id:Date.now(),date,count,total,
+ avg,target,change:previous?avg-previous.avg:null};
+ d.weights.push(entry);
+ d.logs=d.logs||[];
+ d.logs.push({date:date, type:'weight',amount:avg,note:'متوسط وزن العينة'});
+ putDB(d);
+ document.getElementById('count').value='';
+ document.getElementById('total').value='';
+ document.getElementById('target').value='';
+ document.getElementById('msg').textContent='تم حفظ الأوزان.';
+ render();
+}
+function render(){
+ const d=getDB(),arr=(d.weights||[]).slice()
+ .sort((a,b)=>b.date.localeCompare(a.date));
+ const latest=document.getElementById('latest');
+ const records=document.getElementById('records');
+ records.replaceChildren();
+ if(!arr.length){
+  latest.textContent='لا توجد أوزان مسجلة.';
+  return;
+ }
+ const x=arr[0];
+ latest.textContent='التاريخ: '+x.date+
+ ' | متوسط الطائر: '+x.avg.toFixed(3)+' كجم'+
+ (x.target!==null?' | المستهدف: '+x.target+' كجم':'')+
+ (x.change!==null?' | التغير عن آخر قياس أقدم: '+
+ (x.change>=0?'+':'')+x.change.toFixed(3)+' كجم':'');
+ arr.forEach(r=>{
+  const p=document.createElement('p');
+  p.style.borderBottom='1px solid #ddd';
+  p.style.padding='8px 0';
+  p.textContent=r.date+' | العينة: '+r.count+
+  ' طائر | المتوسط: '+r.avg.toFixed(3)+' كجم';
+  records.appendChild(p);
+ });
+}
+render();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 05-health.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الصحة والتحصينات</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>الصحة والتحصينات</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>تسجيل حالة صحية أو تحصين</h3>
+<label>التاريخ</label>
+<input id="date" type="date">
+<label>نوع السجل</label>
+<select id="type">
+<option value="health">ملاحظة صحية</option>
+<option value="vaccine">تحصين</option>
+<option value="treatment">علاج موصوف بيطريًا</option>
+<option value="death">نفوق</option>
+</select>
+<label>عدد الطيور المتأثرة أو النافقة</label>
+<input id="count" type="number" min="0" step="1" value="0">
+<label>الأعراض أو اسم التحصين أو العلاج</label>
+<input id="subject" placeholder="اكتب التفاصيل">
+<label>الإجراء أو الملاحظات</label>
+<textarea id="note" rows="3"></textarea>
+<button onclick="save()">حفظ السجل</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>السجل الصحي</h3>
+<div id="records">لا توجد سجلات.</div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function save(){
+ const date=document.getElementById('date').value;
+ const type=document.getElementById('type').value;
+ const count=Number(document.getElementById('count').value);
+ const subject=document.getElementById('subject').value.trim();
+ const note=document.getElementById('note').value.trim();
+ if(!date||!Number.isInteger(count)||count<0||!subject){
+  alert('أدخل التاريخ والتفاصيل والعدد الصحيح');return;
+ }
+ const d=getDB();
+ if(type==='death'){
+  if(count<1){alert('أدخل عدد الطيور النافقة');return;}
+  if(count>Number(d.birds||0)){
+   alert('العدد أكبر من الطيور الحية المسجلة');return;
+  }
+  d.birds-=count;
+  d.deaths=d.deaths||[];
+  d.deaths.push({date,count,subject,note});
+ }
+ d.health=d.health||[];
+ const entry={id:Date.now(),date,type,count,subject,note};
+ d.health.push(entry);
+ d.logs=d.logs||[];
+ d.logs.push({date:date, type:type==='death'?'death':type, amount:count,note:subject});
+ putDB(d);
+ document.getElementById('msg').textContent=
+ type==='death'?'تم تسجيل النفوق وتحديث عدد الطيور.':'تم حفظ السجل.';
+ document.getElementById('count').value='0';
+ document.getElementById('subject').value='';
+ document.getElementById('note').value='';
+ render();
+}
+function render(){
+ const d=getDB(),arr=(d.health||[]).slice().reverse();
+ const box=document.getElementById('records');
+ box.replaceChildren();
+ if(!arr.length){box.textContent='لا توجد سجلات.';return;}
+ arr.forEach(r=>{
+  const p=document.createElement('p');
+  p.style.cssText='border-bottom:1px solid #ddd;padding:9px 0;line-height:1.7';
+  p.textContent=r.date+' | '+({
+   health:'ملاحظة صحية',vaccine:'تحصين',
+   treatment:'علاج',death:'نفوق'
+  }[r.type]||r.type)+' | العدد: '+r.count+
+  ' | '+r.subject+(r.note?' | '+r.note:'');
+  box.appendChild(p);
+ });
+}
+render();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 06-store.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مخزن العلف</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>مخزن العلف</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>رصيد المخزن</h3>
+<p>الرصيد الحالي: <b id="stock">0</b> كجم</p>
+<p>إجمالي المشتريات: <b id="total">0</b> جنيه</p>
+<p id="warning"></p>
+</div>
+<div class="card">
+<h3>تسجيل شراء علف</h3>
+<label>تاريخ الشراء</label>
+<input id="date" type="date">
+<label>نوع العلف</label>
+<select id="kind">
+<option>بادئ</option><option>نامي</option>
+<option>ناهي</option><option>نوع آخر</option>
+</select>
+<label>الكمية بالكيلو</label>
+<input id="qty" type="number" min="0.01" step="0.01">
+<label>سعر الكيلو بالجنيه</label>
+<input id="price" type="number" min="0" step="0.01">
+<label>طريقة الشراء</label>
+<select id="payment">
+<option value="cash">كاش</option>
+<option value="credit">آجل</option>
+</select>
+<label>المبلغ المدفوع الآن (جنيه)</label>
+<input id="paid" type="number" min="0" step="0.01" value="0">
+<label>اسم المورد</label>
+<input id="supplier" placeholder="اسم المورد">
+<label>ملاحظات</label>
+<input id="note" placeholder="اختياري">
+<button onclick="save()">حفظ شراء العلف</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>حركات المخزن</h3>
+<div id="records">لا توجد حركات.</div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function save(){
+ const date=document.getElementById('date').value;
+ const qty=Number(document.getElementById('qty').value);
+ const price=Number(document.getElementById('price').value);
+ const paid=Number(document.getElementById('paid').value);
+ const payment=document.getElementById('payment').value;
+ if(!date||!Number.isFinite(qty)||qty<=0||
+ !Number.isFinite(price)||price<0||
+ !Number.isFinite(paid)||paid<0){
+  alert('راجع التاريخ والكمية والسعر والمبلغ المدفوع');return;
+ }
+ const cost=qty*price;
+ if(paid>cost){
+  alert('المبلغ المدفوع أكبر من قيمة الفاتورة');return;
+ }
+ if(payment==='cash'&&Math.abs(paid-cost)>0.01){
+  alert('في الشراء الكاش أدخل كامل قيمة الفاتورة في المبلغ المدفوع');return;
+ }
+ const d=getDB();
+ d.feedPurchases=d.feedPurchases||[];
+ d.feedMoves=d.feedMoves||[];
+ d.logs=d.logs||[];
+ d.feed=Number(d.feed||0)+qty;
+ d.feed=Number(d.feed.toFixed(3));
+ d.feedPurchases.push({
+  id:Date.now(),date,kind:document.getElementById('kind').value,
+  qty,price,cost,paid,due:cost-paid,payment,
+  supplier:document.getElementById('supplier').value.trim(),
+  note:document.getElementById('note').value.trim()
+ });
+ d.feedMoves.push({
+  id:Date.now(),date,type:'purchase',qty,
+  kind:document.getElementById('kind').value
+ });
+ d.logs.push({date:date, type:'feed_purchase',amount:cost,note:payment});
+ // تسجل قيمة الفاتورة كاملة كمصروف مشتريات مرة واحدة، والخزنة تخصم المدفوع فقط.
+ d.expenses=d.expenses||[];
+ d.expenses.push({date,category:'شراء علف - '+document.getElementById('kind').value,amount:cost,note:'المورد: '+(document.getElementById('supplier').value.trim()||'غير محدد')+'؛ '+(payment==='cash'?'كاش':'آجل')});
+ d.cashLogs=d.cashLogs||[];
+ if(paid>0)d.cashLogs.unshift({date,type:'expense',category:'سداد شراء علف',amount:paid,note:'المورد: '+(document.getElementById('supplier').value.trim()||'غير محدد')});
+ d.cash=Number(d.cash||0)-paid;
+ putDB(d);
+ document.getElementById('msg').textContent=
+ 'تمت إضافة العلف للمخزن وتسجيل المدفوع والمتبقي.';
+ document.getElementById('qty').value='';
+ document.getElementById('price').value='';
+ document.getElementById('paid').value='0';
+ document.getElementById('note').value='';
+ document.getElementById('supplier').value='';
+ render();
+}
+function render(){
+ const d=getDB(),p=d.feedPurchases||[];
+ document.getElementById('stock').textContent=
+ Number(d.feed||0).toFixed(2);
+ document.getElementById('total').textContent=
+ p.reduce((s,x)=>s+x.cost,0).toFixed(2);
+ const warn=document.getElementById('warning');
+ const logs=(d.feedLogs||[]).filter(x=>x.date && (Date.parse(today())-Date.parse(x.date))>=0 && (Date.parse(today())-Date.parse(x.date))<=6*86400000);
+ const avg=logs.reduce((sum,x)=>sum+(Number(x.feed)||0),0)/7;
+ const daysLeft=avg>0?Number(d.feed||0)/avg:null;
+ warn.textContent=Number(d.feed||0)<=0?'⚠️ رصيد العلف غير كافٍ. سجّل شراء جديدًا.':
+ daysLeft!==null && daysLeft<=5?'⚠️ تنبيه: العلف يكفي نحو '+daysLeft.toFixed(1)+' يوم. اطلب شراءً جديدًا الآن.':
+ avg===0 && Number(d.feed||0)<10?'⚠️ الرصيد أقل من 10 كجم؛ سجّل الاستهلاك اليومي لتقدير موعد النفاد.':'الرصيد متاح.';
+ const box=document.getElementById('records');
+ box.replaceChildren();
+ if(!p.length){box.textContent='لا توجد حركات.';return;}
+ p.slice().reverse().forEach(x=>{
+  const div=document.createElement('div');
+  div.style.cssText='border-bottom:1px solid #ddd;padding:10px 0;line-height:1.8';
+  div.textContent=x.date+' | '+x.kind+' | '+x.qty+' كجم | قيمة '+
+  x.cost.toFixed(2)+' جنيه | مدفوع '+x.paid.toFixed(2)+
+  ' | متبقي '+x.due.toFixed(2)+' | '+(x.payment==='cash'?'كاش':'آجل')+' | المورد: '+(x.supplier||'غير محدد');
+  box.appendChild(div);
+ });
+}
+render();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 07-cash.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الخزنة - مزرعة جدو سيد</title>
+<style>
+body{font-family:Arial;background:#f0fdf4;margin:0;padding:14px;color:#166534}
+h2{text-align:center}
+.card{background:white;padding:14px;margin:12px 0;border-radius:12px;box-shadow:0 2px 6px #ccc}
+label{display:block;margin-top:10px}
+input,select,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border-radius:7px;border:1px solid #bbb;font-size:16px}
+button{background:#166534;color:white;border:0;margin-top:14px}
+.balance{font-size:25px;font-weight:bold;text-align:center;color:#166534}
+.small{font-size:13px;color:#555}
+</style>
+</head>
+<body>
+
+<h2>💰 خزنة مزرعة جدو سيد</h2>
+
+<div class="card">
+<div>الرصيد الحالي</div>
+<div class="balance" id="balance">0 جنيه</div>
+<div class="small">الرصيد السالب يعني أن المدفوعات المسجلة أكبر من الرصيد المضاف.</div>
+</div>
+
+<div class="card">
+<h3>تسجيل رصيد افتتاحي</h3>
+<p id="openingStatus" class="small"></p>
+<label>المبلغ الموجود في الخزنة بالجنيه</label>
+<input id="openingAmount" type="number" min="0" step="0.01" placeholder="مثال: 3000">
+<button id="openingBtn" onclick="setOpening()">تسجيل الرصيد الافتتاحي</button>
+</div>
+
+<div class="card">
+<h3>تسجيل حركة مالية</h3>
+
+<label>التاريخ</label>
+<input id="date" type="date">
+
+<label>نوع الحركة</label>
+<select id="type" onchange="changeType()">
+<option value="income">إيراد / مبلغ داخل</option>
+<option value="expense">مصروف جديد</option>
+<option value="credit">سداد دين علف</option>
+</select>
+
+<div id="normalFields">
+<label>البند</label>
+<input id="category" placeholder="مثال: بيع أرانب أو علاج">
+</div>
+
+<div id="creditFields" style="display:none">
+<label>فاتورة العلف الآجلة</label>
+<select id="purchase"></select>
+<p id="dueInfo" class="small"></p>
+</div>
+
+<label>المبلغ بالجنيه</label>
+<input id="amount" type="number" min="0.01" step="0.01" placeholder="اكتب المبلغ">
+
+<label>ملاحظات</label>
+<textarea id="note" rows="2" placeholder="ملاحظات اختيارية"></textarea>
+
+<button onclick="saveMovement()">حفظ الحركة</button>
+</div>
+
+<div class="card">
+<h3>آخر الحركات المالية</h3>
+<div id="history">لا توجد حركات مسجلة.</div>
+</div>
+
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+
+<script>
+const KEY = "farm45";
+
+function getData(){
+  try{
+    return JSON.parse(localStorage.getItem(KEY)) || {
+      birds:0,start:"",feed:0,cash:0,logs:[]
+    };
+  }catch(e){
+    alert("تعذر قراءة البيانات المحفوظة.");
+    return {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }
+}
+
+let d = getData();
+
+function saveData(){
+  localStorage.setItem(KEY,JSON.stringify(d));
+}
+
+function money(n){
+  return (Number(n)||0).toFixed(2)+" جنيه";
+}
+
+function today(){
+  const x = new Date();
+  return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+}
+
+document.getElementById("date").value = today();
+
+function setOpening(){
+  d = getData();
+
+  if(d.cashInitialized){
+    alert("تم تسجيل الرصيد الافتتاحي من قبل. لن يتم تسجيله مرة ثانية.");
+    refresh();
+    return;
+  }
+
+  const amount = Number(document.getElementById("openingAmount").value);
+
+  if(!Number.isFinite(amount) || amount<0){
+    alert("اكتب رصيدًا صحيحًا.");
+    return;
+  }
+
+  // يضاف الرصيد إلى الرصيد الحالي حتى لا تُلغى
+  // المدفوعات المسجلة سابقًا.
+  d.cash = (Number(d.cash)||0) + amount;
+  d.cashInitialized = true;
+  d.cashLogs = d.cashLogs || [];
+  d.cashLogs.unshift({
+    date:today(),
+    type:"opening",
+    category:"رصيد افتتاحي",
+    amount:amount,
+    note:"إضافة الرصيد الافتتاحي"
+  });
+
+  saveData();
+  document.getElementById("openingAmount").value="";
+  refresh();
+  alert("تم تسجيل الرصيد الافتتاحي.");
+}
+
+function changeType(){
+  const type = document.getElementById("type").value;
+  document.getElementById("normalFields").style.display =
+    type==="credit" ? "none" : "block";
+  document.getElementById("creditFields").style.display =
+    type==="credit" ? "block" : "none";
+  updatePurchases();
+}
+
+function updatePurchases(){
+  d = getData();
+  const select = document.getElementById("purchase");
+  select.innerHTML = "";
+  let found = false;
+
+  (d.feedPurchases||[]).forEach((p,i)=>{
+    const due = Math.max(0,Number(p.due)||0);
+    if(due>0.009){
+      found = true;
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent =
+        (p.supplier || "مورد غير محدد")+
+        " — متبقي "+money(due)+
+        (p.date ? " — "+p.date : "");
+      select.appendChild(option);
+    }
+  });
+
+  if(!found){
+    const option = document.createElement("option");
+    option.value="";
+    option.textContent="لا توجد فواتير آجلة مستحقة";
+    select.appendChild(option);
+  }
+
+  showDue();
+}
+
+function showDue(){
+  d = getData();
+  const i = document.getElementById("purchase").value;
+  const p = (d.feedPurchases||[])[Number(i)];
+  document.getElementById("dueInfo").textContent = p
+    ? "المتبقي على الفاتورة: "+money(p.due)
+    : "لا توجد فاتورة محددة مستحقة.";
+}
+
+document.getElementById("purchase").addEventListener("change",showDue);
+
+function saveMovement(){
+  d = getData();
+
+  const type = document.getElementById("type").value;
+  const amount = Number(document.getElementById("amount").value);
+  const date = document.getElementById("date").value;
+  const note = document.getElementById("note").value.trim();
+  const category = document.getElementById("category").value.trim();
+
+  if(!date){
+    alert("اختر التاريخ.");
+    return;
+  }
+
+  if(!Number.isFinite(amount) || amount<=0){
+    alert("اكتب مبلغًا صحيحًا أكبر من صفر.");
+    return;
+  }
+
+  d.cash = Number(d.cash)||0;
+  d.cashLogs = d.cashLogs||[];
+  d.logs = d.logs||[];
+
+  if(type==="income"){
+    if(!category){
+      alert("اكتب مصدر الإيراد.");
+      return;
+    }
+
+    d.cash += amount;
+    d.incomes = d.incomes||[];
+    d.incomes.push({date,category,amount,note});
+
+    d.cashLogs.unshift({
+      date,type:"income",category,amount,note
+    });
+
+  }else if(type==="expense"){
+    if(!category){
+      alert("اكتب بند المصروف.");
+      return;
+    }
+
+    d.cash -= amount;
+    d.expenses = d.expenses||[];
+    d.expenses.push({date,category,amount,note});
+
+    d.cashLogs.unshift({
+      date,type:"expense",category,amount,note
+    });
+
+  }else if(type==="credit"){
+    const index = document.getElementById("purchase").value;
+    const p = (d.feedPurchases||[])[Number(index)];
+
+    if(index==="" || !p || Number(p.due)<=0){
+      alert("اختر فاتورة آجلة مستحقة.");
+      return;
+    }
+
+    const due = Math.max(0,Number(p.due)||0);
+
+    if(amount>due+0.001){
+      alert("مبلغ السداد أكبر من الدين المتبقي: "+money(due));
+      return;
+    }
+
+    if(amount>d.cash){
+      if(!confirm("الرصيد الحالي لا يكفي. هل تريد تسجيل السداد وجعل الرصيد سالبًا؟")){
+        return;
+      }
+    }
+
+    d.cash -= amount;
+    p.paid = (Number(p.paid)||0)+amount;
+    p.due = Math.max(0,due-amount);
+
+    d.cashLogs.unshift({
+      date,
+      type:"credit",
+      category:"سداد دين علف",
+      amount,
+      note:note+" | "+(p.supplier||"مورد غير محدد")
+    });
+  }
+
+  saveData();
+
+  document.getElementById("amount").value="";
+  document.getElementById("category").value="";
+  document.getElementById("note").value="";
+
+  refresh();
+  alert("تم حفظ الحركة.");
+}
+
+function refresh(){
+  d = getData();
+  document.getElementById("balance").textContent =
+    money(d.cash);
+
+  const initialized = !!d.cashInitialized;
+  document.getElementById("openingStatus").textContent =
+    initialized
+    ? "تم تسجيل الرصيد الافتتاحي سابقًا."
+    : "سجل المبلغ الموجود بالخزنة عند بداية استخدام التطبيق.";
+
+  document.getElementById("openingBtn").disabled = initialized;
+  document.getElementById("openingBtn").style.opacity =
+    initialized ? "0.5" : "1";
+
+  const history = document.getElementById("history");
+  history.innerHTML = "";
+  const items = (d.cashLogs||[]).slice(0,30);
+
+  if(!items.length){
+    history.textContent="لا توجد حركات مسجلة.";
+  }else{
+    items.forEach(item=>{
+      const div = document.createElement("div");
+      div.className="card";
+
+      const label = {
+        opening:"رصيد افتتاحي",
+        income:"إيراد",
+        expense:"مصروف",
+        credit:"سداد دين علف"
+      }[item.type] || item.type;
+
+      div.textContent =
+        (item.date||"")+"\n"+
+        label+" — "+(item.category||"")+"\n"+
+        money(item.amount)+"\n"+
+        (item.note||"");
+
+      history.appendChild(div);
+    });
+  }
+
+  updatePurchases();
+}
+
+refresh();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 08-tools.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الأدوات والمستهلكات</title>
+<style>
+body{font-family:Arial;background:#f0fdf4;color:#166534;padding:12px;margin:0}
+h2{text-align:center}
+.card{background:white;padding:13px;margin:12px 0;border-radius:10px;box-shadow:0 2px 5px #ccc}
+label{display:block;margin-top:10px}
+input,select,button,textarea{box-sizing:border-box;width:100%;padding:10px;margin-top:5px;font-size:16px;border-radius:6px;border:1px solid #aaa}
+button{background:#166534;color:white;border:0;margin-top:12px}
+.item{border-bottom:1px solid #ddd;padding:10px 0;white-space:pre-line}
+.warn{color:#b91c1c;font-weight:bold}
+</style>
+</head>
+<body>
+
+<h2>🧰 الأدوات والمستهلكات</h2>
+
+<div class="card">
+<h3>إضافة صنف للمخزن</h3>
+<label>اسم الصنف</label>
+<input id="name" placeholder="مطهر، نشارة، سقاية، لمبة...">
+
+<label>نوع الصنف</label>
+<select id="kind">
+<option value="مستهلك">مستهلك</option>
+<option value="أداة">أداة قابلة لإعادة الاستخدام</option>
+</select>
+
+<label>الكمية المضافة</label>
+<input id="qty" type="number" min="0.01" step="0.01">
+
+<label>وحدة القياس</label>
+<select id="unit">
+<option>قطعة</option>
+<option>كيلو</option>
+<option>لتر</option>
+<option>عبوة</option>
+<option>كيس</option>
+<option>متر</option>
+</select>
+
+<label>سعر الوحدة بالجنيه</label>
+<input id="price" type="number" min="0" step="0.01">
+
+<label>تاريخ الشراء</label>
+<input id="date" type="date">
+
+<label>طريقة الدفع</label>
+<select id="payment">
+<option value="كاش">كاش</option>
+<option value="آجل">آجل</option>
+</select>
+
+<label>المبلغ المدفوع بالجنيه</label>
+<input id="paid" type="number" min="0" step="0.01" value="0">
+
+<label>ملاحظات</label>
+<textarea id="note" rows="2"></textarea>
+
+<button onclick="addItem()">حفظ الصنف والشراء</button>
+</div>
+
+<div class="card">
+<h3>تسجيل استهلاك أو استخدام</h3>
+
+<label>الصنف</label>
+<select id="useItem"></select>
+
+<label>الكمية المستخدمة</label>
+<input id="useQty" type="number" min="0.01" step="0.01">
+
+<label>التاريخ</label>
+<input id="useDate" type="date">
+
+<label>سبب الاستخدام</label>
+<input id="useNote" placeholder="تنظيف، تطهير، إصلاح...">
+
+<button onclick="useItem()">تسجيل الاستخدام</button>
+</div>
+
+<div class="card">
+<h3>📦 رصيد الأدوات والمستهلكات</h3>
+<div id="stock">لا توجد أصناف.</div>
+</div>
+
+<div class="card">
+<h3>📋 سجل الحركة</h3>
+<div id="history">لا توجد حركات.</div>
+</div>
+
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+
+<script>
+const KEY="farm45";
+
+function getData(){
+  try{
+    return JSON.parse(localStorage.getItem(KEY)) ||
+      {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }catch(e){
+    alert("تعذر قراءة بيانات التطبيق.");
+    return {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }
+}
+
+let d=getData();
+d.tools=d.tools||[];
+d.toolMoves=d.toolMoves||[];
+
+function today(){
+  let x=new Date();
+  return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+}
+
+document.getElementById("date").value=today();
+document.getElementById("useDate").value=today();
+
+function money(n){
+  return (Number(n)||0).toFixed(2)+" جنيه";
+}
+
+function addItem(){
+  d= getData();
+  d.tools=d.tools||[];
+  d.toolMoves=d.toolMoves||[];
+  d.logs=d.logs||[];
+
+  let name=document.getElementById("name").value.trim();
+  let kind=document.getElementById("kind").value;
+  let qty=Number(document.getElementById("qty").value);
+  let unit=document.getElementById("unit").value;
+  let price=Number(document.getElementById("price").value);
+  let date=document.getElementById("date").value;
+  let payment=document.getElementById("payment").value;
+  let paid=Number(document.getElementById("paid").value);
+  let note=document.getElementById("note").value.trim();
+
+  if(!name || !date || !Number.isFinite(qty) || qty<=0 ||
+     !Number.isFinite(price) || price<0 ||
+     !Number.isFinite(paid) || paid<0){
+    alert("راجع اسم الصنف والكمية والسعر والتاريخ.");
+    return;
+  }
+
+  let total=qty*price;
+
+  if(paid>total+0.001){
+    alert("المبلغ المدفوع أكبر من قيمة الشراء.");
+    return;
+  }
+
+  if(payment==="كاش" && Math.abs(paid-total)>0.001){
+    alert("في حالة الكاش يجب أن يساوي المدفوع قيمة الفاتورة.");
+    return;
+  }
+
+  if(paid>(Number(d.cash)||0)){
+    if(!confirm("الرصيد النقدي لا يكفي. هل تريد تسجيل الشراء وجعل الخزنة سالبة؟")){
+      return;
+    }
+  }
+
+  let item=d.tools.find(x=>x.name.toLowerCase()===name.toLowerCase() && x.unit===unit);
+
+  if(item){
+    item.qty=(Number(item.qty)||0)+qty;
+    item.cost=price;
+    item.kind=kind;
+  }else{
+    item={
+      id:Date.now(),
+      name:name,
+      kind:kind,
+      qty:qty,
+      unit:unit,
+      cost:price
+    };
+    d.tools.push(item);
+  }
+
+  d.cash=(Number(d.cash)||0)-paid;
+  d.cashLogs=d.cashLogs||[];
+  d.cashLogs.unshift({
+    date:date,
+    type:"expense",
+    category:"شراء أدوات ومستهلكات: "+name,
+    amount:paid,
+    note:note
+  });
+
+  d.toolMoves.unshift({
+    date:date,
+    type:"شراء",
+    name:name,
+    qty:qty,
+    unit:unit,
+    price:price,
+    total:total,
+    paid:paid,
+    due:total-paid,
+    payment:payment,
+    note:note
+  });
+
+  d.logs.push({
+    date:date,
+    type:"tool_purchase",
+    name:name,
+    qty:qty,
+    total:total,
+    paid:paid
+  });
+
+  save();
+  clearPurchaseForm();
+  render();
+  alert("تم حفظ الصنف وتحديث المخزن والخزنة.");
+}
+
+function useItem(){
+  d=getData();
+  d.tools=d.tools||[];
+  d.toolMoves=d.toolMoves||[];
+
+  let id=Number(document.getElementById("useItem").value);
+  let item=d.tools.find(x=>x.id===id);
+  let qty=Number(document.getElementById("useQty").value);
+  let date=document.getElementById("useDate").value;
+  let note=document.getElementById("useNote").value.trim();
+
+  if(!item){
+    alert("اختر صنفًا.");
+    return;
+  }
+
+  if(!Number.isFinite(qty)||qty<=0||!date){
+    alert("اكتب كمية وتاريخًا صحيحين.");
+    return;
+  }
+
+  if(qty>Number(item.qty)){
+    alert("الكمية المطلوبة أكبر من الرصيد المتاح.");
+    return;
+  }
+
+  item.qty=Number(item.qty)-qty;
+
+  d.toolMoves.unshift({
+    date:date,
+    type:"استهلاك",
+    name:item.name,
+    qty:qty,
+    unit:item.unit,
+    total:qty*(Number(item.cost)||0),
+    note:note
+  });
+
+  save();
+  document.getElementById("useQty").value="";
+  document.getElementById("useNote").value="";
+  render();
+  alert("تم تسجيل الاستخدام وتحديث الرصيد.");
+}
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(d));
+}
+
+function clearPurchaseForm(){
+  ["name","qty","price","note"].forEach(id=>{
+    document.getElementById(id).value="";
+  });
+  document.getElementById("paid").value="0";
+}
+
+function render(){
+  d=getData();
+  d.tools=d.tools||[];
+  d.toolMoves=d.toolMoves||[];
+
+  let stock=document.getElementById("stock");
+  stock.innerHTML="";
+
+  let select=document.getElementById("useItem");
+  select.innerHTML="";
+
+  if(!d.tools.length){
+    stock.textContent="لا توجد أصناف.";
+  }
+
+  d.tools.forEach(item=>{
+    let div=document.createElement("div");
+    div.className="item";
+    div.textContent=
+      item.name+" ("+item.kind+")\n"+
+      "الرصيد: "+item.qty+" "+item.unit+"\n"+
+      "آخر سعر وحدة: "+money(item.cost);
+
+    if(Number(item.qty)<=1){
+      let warning=document.createElement("div");
+      warning.className="warn";
+      warning.textContent="⚠️ الرصيد منخفض";
+      div.appendChild(warning);
+    }
+
+    stock.appendChild(div);
+
+    let option=document.createElement("option");
+    option.value=item.id;
+    option.textContent=item.name+" — المتاح "+item.qty+" "+item.unit;
+    select.appendChild(option);
+  });
+
+  let history=document.getElementById("history");
+  history.innerHTML="";
+
+  if(!d.toolMoves.length){
+    history.textContent="لا توجد حركات.";
+  }
+
+  d.toolMoves.slice(0,50).forEach(move=>{
+    let div=document.createElement("div");
+    div.className="item";
+    div.textContent=
+      (move.date||"")+" — "+move.type+"\n"+
+      move.name+" : "+move.qty+" "+(move.unit||"")+"\n"+
+      (move.total!==undefined?"القيمة: "+money(move.total)+"\n":"")+
+      (move.note||"");
+    history.appendChild(div);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: 09-reports.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التقارير والمبيعات</title>
+<style>
+body{font-family:Arial;background:#f0fdf4;color:#166534;margin:0;padding:12px}
+h2{text-align:center}
+.card{background:white;padding:13px;margin:12px 0;border-radius:10px;box-shadow:0 2px 5px #ccc}
+label{display:block;margin-top:10px}
+input,select,button{box-sizing:border-box;width:100%;padding:10px;margin-top:5px;font-size:16px;border-radius:6px;border:1px solid #aaa}
+button{background:#166534;color:white;border:0;margin-top:12px}
+.number{font-size:23px;font-weight:bold}
+.item{padding:10px 0;border-bottom:1px solid #ddd;white-space:pre-line}
+</style>
+</head>
+<body>
+
+<h2>📊 التقارير والمبيعات</h2>
+
+<div class="card">
+<h3>ملخص المزرعة</h3>
+<p>عدد الطيور الحالي: <span class="number" id="birds">0</span></p>
+<p>رصيد العلف: <span class="number" id="feed">0</span> كجم</p>
+<p>رصيد الخزنة: <span class="number" id="cash">0</span> جنيه</p>
+<p>إجمالي الإيرادات المحصلة: <span id="income">0</span> جنيه</p>
+<p>إجمالي المصروفات المسجلة: <span id="expenses">0</span> جنيه</p>
+<p>صافي الإيرادات والمصروفات المسجلة: <span id="net">0</span> جنيه</p>
+</div>
+
+<div class="card">
+<h3>تسجيل بيع</h3>
+
+<label>تاريخ البيع</label>
+<input id="saleDate" type="date">
+
+<label>نوع المبيع</label>
+<select id="saleType">
+<option>طيور</option>
+<option>علف</option>
+<option>سماد</option>
+<option>أدوات</option>
+<option>أخرى</option>
+</select>
+
+<div id="toolSaleWrap" style="display:none"><label>الصنف المباع من الأدوات</label><select id="saleTool"></select></div>
+<label>الكمية</label>
+<input id="saleQty" type="number" min="0.01" step="0.01">
+
+<label>سعر الوحدة بالجنيه</label>
+<input id="salePrice" type="number" min="0" step="0.01">
+
+<label>المبلغ المحصل الآن</label>
+<input id="salePaid" type="number" min="0" step="0.01" value="0">
+
+<label>ملاحظات</label>
+<input id="saleNote" placeholder="اسم المشتري أو تفاصيل البيع">
+
+<button onclick="addSale()">حفظ البيع</button>
+</div>
+
+<div class="card">
+<h3>سجل المبيعات</h3>
+<div id="salesList">لا توجد مبيعات.</div>
+</div>
+
+<div class="card">
+<h3>تقرير العمليات</h3>
+<label>نوع التقرير</label>
+<select id="reportType">
+<option value="all">كل العمليات</option>
+<option value="income">الإيرادات</option>
+<option value="expense">المصروفات</option>
+<option value="feed">حركات العلف</option>
+<option value="health">الصحة والنفوق</option>
+<option value="tools">الأدوات والمستهلكات</option>
+</select>
+<button onclick="showReport()">عرض التقرير</button>
+<button onclick="exportReport()">تصدير التقرير CSV</button>
+<div id="report"></div>
+</div>
+
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+
+<script>
+const KEY="farm45";
+
+function getData(){
+ try{
+  return JSON.parse(localStorage.getItem(KEY))||
+   {birds:0,feed:0,cash:0,logs:[]};
+ }catch(e){
+  alert("تعذر قراءة بيانات التطبيق.");
+  return {birds:0,feed:0,cash:0,logs:[]};
+ }
+}
+
+let d=getData();
+
+function today(){
+ let x=new Date();
+ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+}
+
+document.getElementById("saleDate").value=today();
+document.getElementById("saleType").addEventListener("change",updateSaleToolOptions);
+function updateSaleToolOptions(){
+ const type=document.getElementById("saleType").value;
+ const wrap=document.getElementById("toolSaleWrap");
+ const select=document.getElementById("saleTool");
+ wrap.style.display=type==="أدوات"?"block":"none";
+ const d=getData(); select.innerHTML="";
+ (d.tools||[]).filter(x=>Number(x.qty)>0).forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=x.name+" — المتاح "+x.qty+" "+x.unit;select.appendChild(o);});
+}
+
+function money(n){
+ return (Number(n)||0).toFixed(2);
+}
+
+function addSale(){
+ d=getData();
+ d.sales=d.sales||[];
+ d.cashLogs=d.cashLogs||[];
+ d.incomes=d.incomes||[];
+ d.logs=d.logs||[];
+
+ let date=document.getElementById("saleDate").value;
+ let type=document.getElementById("saleType").value;
+ let qty=Number(document.getElementById("saleQty").value);
+ let price=Number(document.getElementById("salePrice").value);
+ let paid=Number(document.getElementById("salePaid").value);
+ let note=document.getElementById("saleNote").value.trim();
+
+ let total=qty*price;
+
+ if(!date||!Number.isFinite(qty)||qty<=0||
+    !Number.isFinite(price)||price<0||
+    !Number.isFinite(paid)||paid<0||paid>total){
+  alert("راجع التاريخ والكمية والسعر والمبلغ المحصل.");
+  return;
+ }
+
+ if(type==="طيور" && qty>Number(d.birds||0)){
+  alert("الكمية المباعة أكبر من عدد الطيور المسجل. راجع العدد أولًا.");
+  return;
+ }
+
+ if(type==="علف" && qty>Number(d.feed||0)){
+  alert("الكمية المباعة أكبر من رصيد العلف.");
+  return;
+ }
+
+ let toolItem=null;
+ if(type==="أدوات"){
+  toolItem=(d.tools||[]).find(x=>String(x.id)===document.getElementById("saleTool").value);
+  if(!toolItem){alert("أضف صنفًا للأدوات أولًا ثم اختره للبيع.");return;}
+  if(qty>Number(toolItem.qty||0)){alert("الكمية المباعة أكبر من رصيد الصنف.");return;}
+ }
+
+ let sale={
+  id:Date.now(),
+  date:date,
+  type:type,
+  qty:qty,
+  price:price,
+  total:total,
+  paid:paid,
+  due:total-paid,
+  note:note
+ };
+
+ d.sales.push(sale);
+ d.cash=(Number(d.cash)||0)+paid;
+
+ if(paid>0){
+  d.incomes.push({
+   date:date,
+   category:"تحصيل بيع "+type,
+   amount:paid,
+   note:note
+  });
+
+  d.cashLogs.unshift({
+   date:date,
+   type:"income",
+   category:"تحصيل بيع "+type,
+   amount:paid,
+   note:note
+  });
+ }
+
+ if(type==="طيور"){
+  d.birds=Number(d.birds||0)-qty;
+ }
+
+ if(type==="علف"){
+  d.feed=Number((Number(d.feed||0)-qty).toFixed(3));
+ }
+ if(type==="أدوات" && toolItem){
+  toolItem.qty=Number((Number(toolItem.qty||0)-qty).toFixed(3));
+  d.toolMoves=d.toolMoves||[];
+  d.toolMoves.unshift({date,type:"بيع",name:toolItem.name,qty,unit:toolItem.unit,price,total,note});
+ }
+
+ d.logs.push({
+  date:date,
+  type:"sale",
+  name:type,
+  qty:qty,
+  total:total,
+  paid:paid
+ });
+
+ localStorage.setItem(KEY,JSON.stringify(d));
+
+ document.getElementById("saleQty").value="";
+ document.getElementById("salePrice").value="";
+ document.getElementById("salePaid").value="0";
+ document.getElementById("saleNote").value="";
+ updateSaleToolOptions();
+ refresh();
+ alert("تم تسجيل البيع وتحديث الخزنة.");
+}
+
+function refresh(){
+ d=getData();
+
+ document.getElementById("birds").textContent=Number(d.birds)||0;
+ document.getElementById("feed").textContent=money(d.feed);
+ document.getElementById("cash").textContent=money(d.cash);
+
+ let income=(d.incomes||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
+ let expenses=(d.expenses||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
+
+ document.getElementById("income").textContent=money(income);
+ document.getElementById("expenses").textContent=money(expenses);
+ document.getElementById("net").textContent=money(income-expenses);
+
+ let list=document.getElementById("salesList");
+ list.innerHTML="";
+
+ if(!(d.sales||[]).length){
+  list.textContent="لا توجد مبيعات.";
+ }else{
+  d.sales.slice().reverse().forEach(s=>{
+   let div=document.createElement("div");
+   div.className="item";
+   div.textContent=
+    s.date+" — "+s.type+"\n"+
+    "الكمية: "+s.qty+"\n"+
+    "إجمالي البيع: "+money(s.total)+" جنيه\n"+
+    "المحصل: "+money(s.paid)+" جنيه\n"+
+    "المتبقي عند المشتري: "+money(s.due)+" جنيه\n"+
+    (s.note||"");
+   list.appendChild(div);
+  });
+ }
+}
+
+function getReportRows(){
+ d=getData();
+ let type=document.getElementById("reportType").value;
+ let rows=[];
+
+ function add(date,category,qty,amount,note){
+  rows.push({
+   date:date||"",
+   category:category||"",
+   qty:qty??"",
+   amount:Number(amount)||0,
+   note:note||""
+  });
+ }
+
+ if(type==="all"||type==="income"){
+  (d.incomes||[]).forEach(x=>add(x.date,x.category,"",x.amount,x.note));
+ }
+
+ if(type==="all"||type==="expense"){
+  (d.expenses||[]).forEach(x=>add(x.date,x.category,"",x.amount,x.note));
+ }
+
+ if(type==="all"||type==="feed"){
+  (d.feedLogs||[]).forEach(x=>add(x.date,"استهلاك علف",x.feed,x.cost||0,x.note));
+  if(type==="feed")(d.feedPurchases||[]).forEach(x=>add(x.date,"شراء علف",x.qty,x.cost??x.total,x.supplier||x.note));
+ }
+
+ if(type==="all"||type==="health"){
+  (d.health||[]).forEach(x=>add(x.date,({health:"ملاحظة صحية",vaccine:"تحصين",treatment:"علاج",death:"نفوق"}[x.type]||x.type),x.count??x.qty,"",(x.subject?x.subject+"؛ ":"")+(x.note||"")));
+  if(type==="all"||type==="health")(d.deaths||[]).forEach(x=>{const duplicate=(d.health||[]).some(h=>h.type==="death"&&h.date===x.date&&Number(h.count)===Number(x.count));if(!duplicate)add(x.date,"نفوق",x.count,"",x.note||x.subject);});
+ }
+
+ if(type==="all"||type==="tools"){
+  (d.toolMoves||[]).filter(x=>type==="tools" || x.type!=="شراء").forEach(x=>add(x.date,x.type+" - "+x.name,x.qty,x.total,x.note));
+ }
+
+ if(type==="all"){
+  (d.sales||[]).forEach(x=>add(x.date,"بيع "+x.type,x.qty,0,"إجمالي البيع: "+money(x.total)+"؛ المحصل: "+money(x.paid)+"؛ المتبقي: "+money(x.due)+"؛ "+(x.note||"")));
+ }
+
+ return rows;
+}
+
+function showReport(){
+ let rows=getReportRows();
+ let div=document.getElementById("report");
+ div.innerHTML="";
+
+ if(!rows.length){
+  div.textContent="لا توجد بيانات لهذا التقرير.";
+  return;
+ }
+
+ let total=0;
+ rows.forEach(r=>{
+  total+=r.amount;
+  let item=document.createElement("div");
+  item.className="item";
+  item.textContent=
+   r.date+" — "+r.category+"\n"+
+   (r.qty!==""?"الكمية: "+r.qty+"\n":"")+
+   "القيمة: "+money(r.amount)+" جنيه\n"+
+   r.note;
+  div.appendChild(item);
+ });
+
+ let sum=document.createElement("p");
+ sum.textContent="مجموع القيم الظاهرة: "+money(total)+" جنيه";
+ div.appendChild(sum);
+}
+
+function exportReport(){
+ let rows=getReportRows();
+ if(!rows.length){
+  alert("لا توجد بيانات لتصديرها.");
+  return;
+ }
+
+ let csv="\uFEFFالتاريخ,البند,الكمية,القيمة بالجنيه,ملاحظات\n";
+ rows.forEach(r=>{
+  let vals=[r.date,r.category,r.qty,r.amount,r.note];
+  csv+=vals.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")+"\n";
+ });
+
+ let blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+ let url=URL.createObjectURL(blob);
+ let a=document.createElement("a");
+ a.href=url;
+ a.download="تقرير_مزرعة_جدو_سيد.csv";
+ a.click();
+ URL.revokeObjectURL(url);
+}
+
+updateSaleToolOptions();
+refresh();
+</script>
+</body>
+</html>
+
+
+==========================================================================================
+الملف: index.html
+==========================================================================================
+
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#166534">
+<title>مزرعة جدو سيد</title>
+<style>
+*{box-sizing:border-box}
+body{
+  font-family:Arial,Tahoma,sans-serif;
+  background:#f0fdf4;
+  color:#166534;
+  margin:0;
+  padding:12px
+}
+header{
+  background:#166534;
+  color:white;
+  padding:15px;
+  border-radius:12px;
+  text-align:center
+}
+nav{
+  background:white;
+  padding:12px;
+  margin-top:12px;
+  border-radius:10px;
+  box-shadow:0 2px 5px #ccc
+}
+label{display:block;margin:8px 0 4px}
+select,input,button,textarea{
+  width:100%;
+  padding:11px;
+  margin:5px 0;
+  font-size:16px;
+  border:1px solid #bbb;
+  border-radius:7px
+}
+button{
+  background:#166534;
+  color:white;
+  border:0;
+  cursor:pointer
+}
+.card{
+  background:white;
+  padding:14px;
+  border-radius:10px;
+  margin-top:12px;
+  box-shadow:0 2px 5px #ddd
+}
+.stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+.stat{
+  background:#dcfce7;
+  padding:12px;
+  border-radius:8px;
+  text-align:center
+}
+.value{font-size:21px;font-weight:bold}
+.small{font-size:13px;color:#555}
+</style>
+</head>
+<body>
+
+<header>
+  <h2>🐔 مزرعة جدو سيد</h2>
+  <div>إدارة دورة تربية الفراخ البيضاء</div>
+</header>
+
+<nav>
+  <label for="sections"><b>📂 قائمة الأقسام</b></label>
+  <select id="sections" onchange="openSection()">
+    <option value="">اختر القسم المطلوب</option>
+    <option value="01-cycle.html">1 - بيانات الدورة</option>
+    <option value="02-daily.html">2 - المتابعة اليومية</option>
+    <option value="03-feed.html">3 - العلف والمياه</option>
+    <option value="04-weight.html">4 - الأوزان</option>
+    <option value="05-health.html">5 - الصحة والتحصينات والنفوق</option>
+    <option value="06-store.html">6 - مخزن العلف والمشتريات</option>
+    <option value="07-cash.html">7 - الخزنة والمصروفات</option>
+    <option value="08-tools.html">8 - الأدوات والمستهلكات</option>
+    <option value="09-reports.html">9 - التقارير والمبيعات</option>
+  </select>
+</nav>
+
+<div class="card">
+  <h3>📊 ملخص المزرعة</h3>
+  <div class="stats">
+    <div class="stat">
+      عدد الطيور
+      <div class="value" id="birds">0</div>
+    </div>
+    <div class="stat">
+      عمر الدورة
+      <div class="value" id="age">-</div>
+    </div>
+    <div class="stat">
+      مخزون العلف
+      <div class="value" id="feed">0 كجم</div>
+    </div>
+    <div class="stat">
+      رصيد الخزنة
+      <div class="value" id="cash">0 جنيه</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>⚡ إدخال سريع</h3>
+
+  <label>نوع العملية</label>
+  <select id="entryType" onchange="changeEntry()">
+    <option value="feed">استهلاك علف بالكيلو</option>
+    <option value="death">نفوق طيور</option>
+    <option value="water">كمية المياه باللتر</option>
+    <option value="expense">مصروف نقدي</option>
+  </select>
+
+  <label>الكمية أو المبلغ</label>
+  <input id="amount" type="number" min="0.01" step="0.01"
+         placeholder="أدخل الكمية أو المبلغ">
+
+  <div id="extraField">
+    <label>ملاحظات</label>
+    <input id="note" placeholder="ملاحظات اختيارية">
+  </div>
+
+  <button onclick="saveEntry()">حفظ الإدخال السريع</button>
+</div>
+
+<div class="card">
+  <h3>💾 حفظ نسخة احتياطية</h3>
+  <p class="small">احفظ نسخة من بيانات المزرعة للاحتفاظ بها.</p>
+  <button onclick="backup()">تصدير نسخة احتياطية</button>
+</div>
+
+<script>
+const KEY="farm45";
+
+function getData(){
+  try{
+    return JSON.parse(localStorage.getItem(KEY))||
+      {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }catch(e){
+    alert("تعذر قراءة البيانات المحفوظة.");
+    return {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }
+}
+
+function saveData(d){
+  localStorage.setItem(KEY,JSON.stringify(d));
+}
+
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+
+function openSection(){
+  const page=document.getElementById("sections").value;
+  if(page){
+    location.href=page;
+  }
+}
+
+function changeEntry(){
+  const type=document.getElementById("entryType").value;
+  const input=document.getElementById("amount");
+
+  if(type==="death"){
+    input.placeholder="عدد الطيور النافقة";
+    input.step="1";
+  }else if(type==="water"){
+    input.placeholder="كمية المياه باللتر";
+    input.step="0.01";
+  }else if(type==="expense"){
+    input.placeholder="المبلغ بالجنيه";
+    input.step="0.01";
+  }else{
+    input.placeholder="كمية العلف بالكيلو";
+    input.step="0.01";
+  }
+}
+
+function saveEntry(){
+  let d=getData();
+  d.logs=d.logs||[];
+
+  const type=document.getElementById("entryType").value;
+  const amount=Number(document.getElementById("amount").value);
+  const note=document.getElementById("note").value.trim();
+
+  if(!Number.isFinite(amount)||amount<=0){
+    alert("أدخل قيمة صحيحة أكبر من صفر.");
+    return;
+  }
+
+  if(type==="death"&&!Number.isInteger(amount)){
+    alert("أدخل عدد الطيور كعدد صحيح.");
+    return;
+  }
+
+  if(type==="feed"){
+    if(amount>Number(d.feed||0)){
+      alert("الكمية أكبر من مخزون العلف.");
+      return;
+    }
+    d.feed=Number(d.feed||0)-amount;
+  }
+
+  if(type==="death"){
+    if(amount>Number(d.birds||0)){
+      alert("عدد النفوق أكبر من عدد الطيور المسجل.");
+      return;
+    }
+    d.birds=Number(d.birds||0)-amount;
+    d.deaths=d.deaths||[];
+    d.deaths.push({
+      date:today(),
+      count:amount,
+      note:note
+    });
+  }
+
+  if(type==="water"){
+    d.waterLogs=d.waterLogs||[];
+    d.waterLogs.push({
+      date:today(),
+      qty:amount,
+      note:note
+    });
+  }
+
+  if(type==="expense"){
+    if(amount>Number(d.cash||0)){
+      if(!confirm("المبلغ أكبر من رصيد الخزنة. هل تريد المتابعة؟")){
+        return;
+      }
+    }
+
+    d.cash=Number(d.cash||0)-amount;
+    d.expenses=d.expenses||[];
+    d.expenses.push({
+      date:today(),
+      category:"مصروف من الإدخال السريع",
+      amount:amount,
+      note:note
+    });
+
+    d.cashLogs=d.cashLogs||[];
+    d.cashLogs.unshift({
+      date:today(),
+      type:"expense",
+      category:"مصروف من الإدخال السريع",
+      amount:amount,
+      note:note
+    });
+  }
+
+  d.logs.push({
+    date:today(),
+    type:type,
+    qty:amount,
+    note:note
+  });
+
+  saveData(d);
+  document.getElementById("amount").value="";
+  document.getElementById("note").value="";
+  refresh();
+  alert("تم حفظ البيانات.");
+}
+
+function backup(){
+  const data=localStorage.getItem(KEY)||"{}";
+  const blob=new Blob([data],{type:"application/json;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="backup-mazraat-gedo-sayed.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function refresh(){
+  const d=getData();
+
+  document.getElementById("birds").textContent=Number(d.birds)||0;
+  document.getElementById("feed").textContent=
+    (Number(d.feed)||0).toFixed(2)+" كجم";
+  document.getElementById("cash").textContent=
+    (Number(d.cash)||0).toFixed(2)+" جنيه";
+
+  if(d.start){
+    const start=new Date(d.start+"T00:00:00");
+    const now=new Date();
+    const age=Math.floor((now-start)/86400000)+1;
+    document.getElementById("age").textContent=
+      age>0?age+" يوم":"-";
+  }else{
+    document.getElementById("age").textContent="-";
+  }
+}
+
+refresh();
+</script>
+</body>
+</html>
+

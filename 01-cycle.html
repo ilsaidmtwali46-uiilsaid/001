@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بيانات الدورة</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;text-align:center;padding:16px}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select{width:100%;padding:12px;margin-top:5px;box-sizing:border-box;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px;margin-top:12px}
+a{color:#166534}
+</style>
+</head>
+<body>
+<header><h2>بيانات الدورة</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>تسجيل دورة جديدة</h3>
+<label>رقم الدورة</label>
+<input id="num" placeholder="مثال: 001">
+<label>تاريخ وصول الكتاكيت</label>
+<input id="start" type="date">
+<label>عدد الكتاكيت</label>
+<input id="birds" type="number" min="1">
+<label>سعر الكتكوت بالجنيه</label>
+<input id="price" type="number" min="0" step="0.01">
+<label>اسم المورد</label>
+<input id="supplier" placeholder="اسم المورد">
+<label>السلالة أو النوع</label>
+<input id="breed" placeholder="مثال: أبيض تسمين">
+<label>مدة الدورة بالأيام</label>
+<input id="duration" type="number" min="1" value="45">
+<button onclick="save()">حفظ بيانات الدورة</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>بيانات الدورة المحفوظة</h3>
+<div id="result">لا توجد بيانات محفوظة.</div>
+<button onclick="load()">عرض البيانات المحفوظة</button>
+</div>
+<p><a href="index.html">العودة إلى الصفحة الرئيسية</a></p>
+</main>
+<script>
+function db(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function save(){
+ const d=db();
+ const num=document.getElementById('num').value.trim();
+ const start=document.getElementById('start').value;
+ const birds=Number(document.getElementById('birds').value);
+ const price=Number(document.getElementById('price').value);
+ const duration=Number(document.getElementById('duration').value);
+ if(!num||!start||!Number.isInteger(birds)||birds<1||
+ !Number.isFinite(price)||price<0||
+ !Number.isInteger(duration)||duration<1){
+ alert('راجع رقم الدورة والتاريخ والأعداد والأسعار');return;
+ }
+ d.cycle={num,start,birds,price,
+ supplier:document.getElementById('supplier').value.trim(),
+ breed:document.getElementById('breed').value.trim(),duration};
+ d.birds=birds;
+ d.start=start;
+ d.logs=d.logs||[];
+ d.logs.push({date:start,
+ type:'new_cycle',amount:birds,note:'إنشاء الدورة '+num});
+ localStorage.setItem('farm45',JSON.stringify(d));
+ document.getElementById('msg').textContent='تم حفظ بيانات الدورة.';
+ load();
+}
+function load(){
+ const d=db(),c=d.cycle;
+ if(!c){document.getElementById('result').textContent='لا توجد بيانات محفوظة.';return;}
+ document.getElementById('result').innerHTML=
+ 'رقم الدورة: '+c.num+
+ '<br>تاريخ البداية: '+c.start+
+ '<br>عدد الكتاكيت عند الاستقبال: '+c.birds+
+ '<br>سعر الكتكوت: '+c.price+' جنيه'+
+ '<br>إجمالي ثمن الكتاكيت: '+(c.birds*c.price).toFixed(2)+' جنيه'+
+ '<br>المورد: '+(c.supplier||'—')+
+ '<br>السلالة: '+(c.breed||'—')+
+ '<br>مدة الدورة: '+c.duration+' يومًا';
+ document.getElementById('num').value=c.num;
+ document.getElementById('start').value=c.start;
+ document.getElementById('birds').value=c.birds;
+ document.getElementById('price').value=c.price;
+ document.getElementById('supplier').value=c.supplier;
+ document.getElementById('breed').value=c.breed;
+ document.getElementById('duration').value=c.duration;
+}
+load();
+</script>
+</body>
+</html>

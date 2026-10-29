@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التغذية والمياه</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>التغذية والمياه</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>رصيد مخزن العلف</h3>
+<p>الرصيد الحالي: <b id="stock">0</b> كجم</p>
+</div>
+<div class="card">
+<h3>تسجيل الاستهلاك اليومي</h3>
+<label>التاريخ</label>
+<input id="date" type="date">
+<label>نوع العلف</label>
+<select id="kind">
+<option>بادئ</option>
+<option>نامي</option>
+<option>ناهي</option>
+<option>نوع آخر</option>
+</select>
+<label>كمية العلف المستهلكة بالكيلو</label>
+<input id="feed" type="number" min="0.01" step="0.01">
+<label>استهلاك المياه باللتر</label>
+<input id="water" type="number" min="0" step="0.1">
+<label>ملاحظات</label>
+<textarea id="note" rows="2"></textarea>
+<button onclick="save()">حفظ الاستهلاك</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>سجل الاستهلاك</h3>
+<div id="records">لا توجد سجلات.</div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function refresh(){
+ const d=getDB();
+ document.getElementById('stock').textContent=
+ Number(d.feed||0).toFixed(2);
+ const arr=d.feedLogs||[];
+ const box=document.getElementById('records');
+ box.replaceChildren();
+ if(!arr.length){box.textContent='لا توجد سجلات.';return;}
+ arr.slice().reverse().forEach(r=>{
+  const p=document.createElement('p');
+  p.textContent=r.date+' | '+r.kind+' | علف: '+r.feed+
+  ' كجم | مياه: '+r.water+' لتر'+(r.note?' | '+r.note:'');
+  box.appendChild(p);
+ });
+}
+function save(){
+ const f=Number(document.getElementById('feed').value);
+ const w=Number(document.getElementById('water').value);
+ const date=document.getElementById('date').value;
+ if(!date||document.getElementById('feed').value===''||
+ !Number.isFinite(f)||f<=0||
+ document.getElementById('water').value===''||
+ !Number.isFinite(w)||w<0){
+  alert('أدخل التاريخ وكمية العلف والمياه بصورة صحيحة');return;
+ }
+ const d=getDB();
+ d.feed=Number(d.feed||0);
+ if(f>d.feed){
+  alert('رصيد العلف غير كافٍ. سجّل شراء العلف في المخزن أولًا.');
+  return;
+ }
+ d.feed=Number((d.feed-f).toFixed(3));
+ d.feedLogs=d.feedLogs||[];
+ const entry={
+  id:Date.now(),date,kind:document.getElementById('kind').value,
+  feed:f,water:w,note:document.getElementById('note').value.trim()
+ };
+ d.feedLogs.push(entry);
+ d.logs=d.logs||[];
+ d.logs.push({date:date, type:'feed_consumption',amount:f,note:entry.kind});
+ putDB(d);
+ document.getElementById('feed').value='';
+ document.getElementById('water').value='';
+ document.getElementById('note').value='';
+ document.getElementById('msg').textContent='تم حفظ الاستهلاك وخصمه من الرصيد.';
+ refresh();
+}
+refresh();
+</script>
+</body>
+</html>

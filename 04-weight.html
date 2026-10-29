@@ -1,0 +1,113 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الأوزان والنمو</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input{width:100%;box-sizing:border-box;padding:12px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>الأوزان والنمو</h2>متابعة أداء القطيع</header>
+<main>
+<div class="card">
+<h3>تسجيل عينة أوزان</h3>
+<label>تاريخ الوزن</label>
+<input id="date" type="date">
+<label>عدد الطيور التي تم وزنها</label>
+<input id="count" type="number" min="1" step="1">
+<label>إجمالي أوزان العينة بالكيلو</label>
+<input id="total" type="number" min="0.001" step="0.001">
+<label>الوزن المستهدف للطائر بالكيلو (اختياري)</label>
+<input id="target" type="number" min="0.001" step="0.001">
+<button onclick="save()">حفظ الأوزان</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>آخر نتيجة</h3>
+<div id="latest">لا توجد أوزان مسجلة.</div>
+</div>
+<div class="card">
+<h3>سجل الأوزان</h3>
+<div id="records"></div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function save(){
+ const date=document.getElementById('date').value;
+ const count=Number(document.getElementById('count').value);
+ const total=Number(document.getElementById('total').value);
+ const targetText=document.getElementById('target').value;
+ const target=targetText===''?null:Number(targetText);
+ if(!date||!Number.isInteger(count)||count<1||
+ !Number.isFinite(total)||total<=0||
+ (target!==null&&(!Number.isFinite(target)||target<=0))){
+  alert('راجع التاريخ وعدد الطيور وإجمالي الأوزان');return;
+ }
+ if(total/count>10){
+  alert('متوسط الوزن مرتفع بصورة غير معتادة. راجع وحدة الوزن والقيم.');
+  return;
+ }
+ const d=getDB();
+ d.weights=d.weights||[];
+ const avg=total/count;
+ const previous=d.weights.filter(x=>x.date<date)
+  .sort((a,b)=>b.date.localeCompare(a.date))[0];
+ const entry={id:Date.now(),date,count,total,
+ avg,target,change:previous?avg-previous.avg:null};
+ d.weights.push(entry);
+ d.logs=d.logs||[];
+ d.logs.push({date:date, type:'weight',amount:avg,note:'متوسط وزن العينة'});
+ putDB(d);
+ document.getElementById('count').value='';
+ document.getElementById('total').value='';
+ document.getElementById('target').value='';
+ document.getElementById('msg').textContent='تم حفظ الأوزان.';
+ render();
+}
+function render(){
+ const d=getDB(),arr=(d.weights||[]).slice()
+ .sort((a,b)=>b.date.localeCompare(a.date));
+ const latest=document.getElementById('latest');
+ const records=document.getElementById('records');
+ records.replaceChildren();
+ if(!arr.length){
+  latest.textContent='لا توجد أوزان مسجلة.';
+  return;
+ }
+ const x=arr[0];
+ latest.textContent='التاريخ: '+x.date+
+ ' | متوسط الطائر: '+x.avg.toFixed(3)+' كجم'+
+ (x.target!==null?' | المستهدف: '+x.target+' كجم':'')+
+ (x.change!==null?' | التغير عن آخر قياس أقدم: '+
+ (x.change>=0?'+':'')+x.change.toFixed(3)+' كجم':'');
+ arr.forEach(r=>{
+  const p=document.createElement('p');
+  p.style.borderBottom='1px solid #ddd';
+  p.style.padding='8px 0';
+  p.textContent=r.date+' | العينة: '+r.count+
+  ' طائر | المتوسط: '+r.avg.toFixed(3)+' كجم';
+  records.appendChild(p);
+ });
+}
+render();
+</script>
+</body>
+</html>

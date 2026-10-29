@@ -1,0 +1,341 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الأدوات والمستهلكات</title>
+<style>
+body{font-family:Arial;background:#f0fdf4;color:#166534;padding:12px;margin:0}
+h2{text-align:center}
+.card{background:white;padding:13px;margin:12px 0;border-radius:10px;box-shadow:0 2px 5px #ccc}
+label{display:block;margin-top:10px}
+input,select,button,textarea{box-sizing:border-box;width:100%;padding:10px;margin-top:5px;font-size:16px;border-radius:6px;border:1px solid #aaa}
+button{background:#166534;color:white;border:0;margin-top:12px}
+.item{border-bottom:1px solid #ddd;padding:10px 0;white-space:pre-line}
+.warn{color:#b91c1c;font-weight:bold}
+</style>
+</head>
+<body>
+
+<h2>🧰 الأدوات والمستهلكات</h2>
+
+<div class="card">
+<h3>إضافة صنف للمخزن</h3>
+<label>اسم الصنف</label>
+<input id="name" placeholder="مطهر، نشارة، سقاية، لمبة...">
+
+<label>نوع الصنف</label>
+<select id="kind">
+<option value="مستهلك">مستهلك</option>
+<option value="أداة">أداة قابلة لإعادة الاستخدام</option>
+</select>
+
+<label>الكمية المضافة</label>
+<input id="qty" type="number" min="0.01" step="0.01">
+
+<label>وحدة القياس</label>
+<select id="unit">
+<option>قطعة</option>
+<option>كيلو</option>
+<option>لتر</option>
+<option>عبوة</option>
+<option>كيس</option>
+<option>متر</option>
+</select>
+
+<label>سعر الوحدة بالجنيه</label>
+<input id="price" type="number" min="0" step="0.01">
+
+<label>تاريخ الشراء</label>
+<input id="date" type="date">
+
+<label>طريقة الدفع</label>
+<select id="payment">
+<option value="كاش">كاش</option>
+<option value="آجل">آجل</option>
+</select>
+
+<label>المبلغ المدفوع بالجنيه</label>
+<input id="paid" type="number" min="0" step="0.01" value="0">
+
+<label>ملاحظات</label>
+<textarea id="note" rows="2"></textarea>
+
+<button onclick="addItem()">حفظ الصنف والشراء</button>
+</div>
+
+<div class="card">
+<h3>تسجيل استهلاك أو استخدام</h3>
+
+<label>الصنف</label>
+<select id="useItem"></select>
+
+<label>الكمية المستخدمة</label>
+<input id="useQty" type="number" min="0.01" step="0.01">
+
+<label>التاريخ</label>
+<input id="useDate" type="date">
+
+<label>سبب الاستخدام</label>
+<input id="useNote" placeholder="تنظيف، تطهير، إصلاح...">
+
+<button onclick="useItem()">تسجيل الاستخدام</button>
+</div>
+
+<div class="card">
+<h3>📦 رصيد الأدوات والمستهلكات</h3>
+<div id="stock">لا توجد أصناف.</div>
+</div>
+
+<div class="card">
+<h3>📋 سجل الحركة</h3>
+<div id="history">لا توجد حركات.</div>
+</div>
+
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+
+<script>
+const KEY="farm45";
+
+function getData(){
+  try{
+    return JSON.parse(localStorage.getItem(KEY)) ||
+      {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }catch(e){
+    alert("تعذر قراءة بيانات التطبيق.");
+    return {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }
+}
+
+let d=getData();
+d.tools=d.tools||[];
+d.toolMoves=d.toolMoves||[];
+
+function today(){
+  let x=new Date();
+  return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+}
+
+document.getElementById("date").value=today();
+document.getElementById("useDate").value=today();
+
+function money(n){
+  return (Number(n)||0).toFixed(2)+" جنيه";
+}
+
+function addItem(){
+  d= getData();
+  d.tools=d.tools||[];
+  d.toolMoves=d.toolMoves||[];
+  d.logs=d.logs||[];
+
+  let name=document.getElementById("name").value.trim();
+  let kind=document.getElementById("kind").value;
+  let qty=Number(document.getElementById("qty").value);
+  let unit=document.getElementById("unit").value;
+  let price=Number(document.getElementById("price").value);
+  let date=document.getElementById("date").value;
+  let payment=document.getElementById("payment").value;
+  let paid=Number(document.getElementById("paid").value);
+  let note=document.getElementById("note").value.trim();
+
+  if(!name || !date || !Number.isFinite(qty) || qty<=0 ||
+     !Number.isFinite(price) || price<0 ||
+     !Number.isFinite(paid) || paid<0){
+    alert("راجع اسم الصنف والكمية والسعر والتاريخ.");
+    return;
+  }
+
+  let total=qty*price;
+
+  if(paid>total+0.001){
+    alert("المبلغ المدفوع أكبر من قيمة الشراء.");
+    return;
+  }
+
+  if(payment==="كاش" && Math.abs(paid-total)>0.001){
+    alert("في حالة الكاش يجب أن يساوي المدفوع قيمة الفاتورة.");
+    return;
+  }
+
+  if(paid>(Number(d.cash)||0)){
+    if(!confirm("الرصيد النقدي لا يكفي. هل تريد تسجيل الشراء وجعل الخزنة سالبة؟")){
+      return;
+    }
+  }
+
+  let item=d.tools.find(x=>x.name.toLowerCase()===name.toLowerCase() && x.unit===unit);
+
+  if(item){
+    item.qty=(Number(item.qty)||0)+qty;
+    item.cost=price;
+    item.kind=kind;
+  }else{
+    item={
+      id:Date.now(),
+      name:name,
+      kind:kind,
+      qty:qty,
+      unit:unit,
+      cost:price
+    };
+    d.tools.push(item);
+  }
+
+  d.cash=(Number(d.cash)||0)-paid;
+  d.cashLogs=d.cashLogs||[];
+  d.cashLogs.unshift({
+    date:date,
+    type:"expense",
+    category:"شراء أدوات ومستهلكات: "+name,
+    amount:paid,
+    note:note
+  });
+
+  d.toolMoves.unshift({
+    date:date,
+    type:"شراء",
+    name:name,
+    qty:qty,
+    unit:unit,
+    price:price,
+    total:total,
+    paid:paid,
+    due:total-paid,
+    payment:payment,
+    note:note
+  });
+
+  d.logs.push({
+    date:date,
+    type:"tool_purchase",
+    name:name,
+    qty:qty,
+    total:total,
+    paid:paid
+  });
+
+  save();
+  clearPurchaseForm();
+  render();
+  alert("تم حفظ الصنف وتحديث المخزن والخزنة.");
+}
+
+function useItem(){
+  d=getData();
+  d.tools=d.tools||[];
+  d.toolMoves=d.toolMoves||[];
+
+  let id=Number(document.getElementById("useItem").value);
+  let item=d.tools.find(x=>x.id===id);
+  let qty=Number(document.getElementById("useQty").value);
+  let date=document.getElementById("useDate").value;
+  let note=document.getElementById("useNote").value.trim();
+
+  if(!item){
+    alert("اختر صنفًا.");
+    return;
+  }
+
+  if(!Number.isFinite(qty)||qty<=0||!date){
+    alert("اكتب كمية وتاريخًا صحيحين.");
+    return;
+  }
+
+  if(qty>Number(item.qty)){
+    alert("الكمية المطلوبة أكبر من الرصيد المتاح.");
+    return;
+  }
+
+  item.qty=Number(item.qty)-qty;
+
+  d.toolMoves.unshift({
+    date:date,
+    type:"استهلاك",
+    name:item.name,
+    qty:qty,
+    unit:item.unit,
+    total:qty*(Number(item.cost)||0),
+    note:note
+  });
+
+  save();
+  document.getElementById("useQty").value="";
+  document.getElementById("useNote").value="";
+  render();
+  alert("تم تسجيل الاستخدام وتحديث الرصيد.");
+}
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(d));
+}
+
+function clearPurchaseForm(){
+  ["name","qty","price","note"].forEach(id=>{
+    document.getElementById(id).value="";
+  });
+  document.getElementById("paid").value="0";
+}
+
+function render(){
+  d=getData();
+  d.tools=d.tools||[];
+  d.toolMoves=d.toolMoves||[];
+
+  let stock=document.getElementById("stock");
+  stock.innerHTML="";
+
+  let select=document.getElementById("useItem");
+  select.innerHTML="";
+
+  if(!d.tools.length){
+    stock.textContent="لا توجد أصناف.";
+  }
+
+  d.tools.forEach(item=>{
+    let div=document.createElement("div");
+    div.className="item";
+    div.textContent=
+      item.name+" ("+item.kind+")\n"+
+      "الرصيد: "+item.qty+" "+item.unit+"\n"+
+      "آخر سعر وحدة: "+money(item.cost);
+
+    if(Number(item.qty)<=1){
+      let warning=document.createElement("div");
+      warning.className="warn";
+      warning.textContent="⚠️ الرصيد منخفض";
+      div.appendChild(warning);
+    }
+
+    stock.appendChild(div);
+
+    let option=document.createElement("option");
+    option.value=item.id;
+    option.textContent=item.name+" — المتاح "+item.qty+" "+item.unit;
+    select.appendChild(option);
+  });
+
+  let history=document.getElementById("history");
+  history.innerHTML="";
+
+  if(!d.toolMoves.length){
+    history.textContent="لا توجد حركات.";
+  }
+
+  d.toolMoves.slice(0,50).forEach(move=>{
+    let div=document.createElement("div");
+    div.className="item";
+    div.textContent=
+      (move.date||"")+" — "+move.type+"\n"+
+      move.name+" : "+move.qty+" "+(move.unit||"")+"\n"+
+      (move.total!==undefined?"القيمة: "+money(move.total)+"\n":"")+
+      (move.note||"");
+    history.appendChild(div);
+  });
+}
+
+render();
+</script>
+</body>
+</html>

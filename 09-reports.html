@@ -1,0 +1,360 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>التقارير والمبيعات</title>
+<style>
+body{font-family:Arial;background:#f0fdf4;color:#166534;margin:0;padding:12px}
+h2{text-align:center}
+.card{background:white;padding:13px;margin:12px 0;border-radius:10px;box-shadow:0 2px 5px #ccc}
+label{display:block;margin-top:10px}
+input,select,button{box-sizing:border-box;width:100%;padding:10px;margin-top:5px;font-size:16px;border-radius:6px;border:1px solid #aaa}
+button{background:#166534;color:white;border:0;margin-top:12px}
+.number{font-size:23px;font-weight:bold}
+.item{padding:10px 0;border-bottom:1px solid #ddd;white-space:pre-line}
+</style>
+</head>
+<body>
+
+<h2>📊 التقارير والمبيعات</h2>
+
+<div class="card">
+<h3>ملخص المزرعة</h3>
+<p>عدد الطيور الحالي: <span class="number" id="birds">0</span></p>
+<p>رصيد العلف: <span class="number" id="feed">0</span> كجم</p>
+<p>رصيد الخزنة: <span class="number" id="cash">0</span> جنيه</p>
+<p>إجمالي الإيرادات المحصلة: <span id="income">0</span> جنيه</p>
+<p>إجمالي المصروفات المسجلة: <span id="expenses">0</span> جنيه</p>
+<p>صافي الإيرادات والمصروفات المسجلة: <span id="net">0</span> جنيه</p>
+</div>
+
+<div class="card">
+<h3>تسجيل بيع</h3>
+
+<label>تاريخ البيع</label>
+<input id="saleDate" type="date">
+
+<label>نوع المبيع</label>
+<select id="saleType">
+<option>طيور</option>
+<option>علف</option>
+<option>سماد</option>
+<option>أدوات</option>
+<option>أخرى</option>
+</select>
+
+<div id="toolSaleWrap" style="display:none"><label>الصنف المباع من الأدوات</label><select id="saleTool"></select></div>
+<label>الكمية</label>
+<input id="saleQty" type="number" min="0.01" step="0.01">
+
+<label>سعر الوحدة بالجنيه</label>
+<input id="salePrice" type="number" min="0" step="0.01">
+
+<label>المبلغ المحصل الآن</label>
+<input id="salePaid" type="number" min="0" step="0.01" value="0">
+
+<label>ملاحظات</label>
+<input id="saleNote" placeholder="اسم المشتري أو تفاصيل البيع">
+
+<button onclick="addSale()">حفظ البيع</button>
+</div>
+
+<div class="card">
+<h3>سجل المبيعات</h3>
+<div id="salesList">لا توجد مبيعات.</div>
+</div>
+
+<div class="card">
+<h3>تقرير العمليات</h3>
+<label>نوع التقرير</label>
+<select id="reportType">
+<option value="all">كل العمليات</option>
+<option value="income">الإيرادات</option>
+<option value="expense">المصروفات</option>
+<option value="feed">حركات العلف</option>
+<option value="health">الصحة والنفوق</option>
+<option value="tools">الأدوات والمستهلكات</option>
+</select>
+<button onclick="showReport()">عرض التقرير</button>
+<button onclick="exportReport()">تصدير التقرير CSV</button>
+<div id="report"></div>
+</div>
+
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+
+<script>
+const KEY="farm45";
+
+function getData(){
+ try{
+  return JSON.parse(localStorage.getItem(KEY))||
+   {birds:0,feed:0,cash:0,logs:[]};
+ }catch(e){
+  alert("تعذر قراءة بيانات التطبيق.");
+  return {birds:0,feed:0,cash:0,logs:[]};
+ }
+}
+
+let d=getData();
+
+function today(){
+ let x=new Date();
+ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+}
+
+document.getElementById("saleDate").value=today();
+document.getElementById("saleType").addEventListener("change",updateSaleToolOptions);
+function updateSaleToolOptions(){
+ const type=document.getElementById("saleType").value;
+ const wrap=document.getElementById("toolSaleWrap");
+ const select=document.getElementById("saleTool");
+ wrap.style.display=type==="أدوات"?"block":"none";
+ const d=getData(); select.innerHTML="";
+ (d.tools||[]).filter(x=>Number(x.qty)>0).forEach(x=>{const o=document.createElement("option");o.value=x.id;o.textContent=x.name+" — المتاح "+x.qty+" "+x.unit;select.appendChild(o);});
+}
+
+function money(n){
+ return (Number(n)||0).toFixed(2);
+}
+
+function addSale(){
+ d=getData();
+ d.sales=d.sales||[];
+ d.cashLogs=d.cashLogs||[];
+ d.incomes=d.incomes||[];
+ d.logs=d.logs||[];
+
+ let date=document.getElementById("saleDate").value;
+ let type=document.getElementById("saleType").value;
+ let qty=Number(document.getElementById("saleQty").value);
+ let price=Number(document.getElementById("salePrice").value);
+ let paid=Number(document.getElementById("salePaid").value);
+ let note=document.getElementById("saleNote").value.trim();
+
+ let total=qty*price;
+
+ if(!date||!Number.isFinite(qty)||qty<=0||
+    !Number.isFinite(price)||price<0||
+    !Number.isFinite(paid)||paid<0||paid>total){
+  alert("راجع التاريخ والكمية والسعر والمبلغ المحصل.");
+  return;
+ }
+
+ if(type==="طيور" && qty>Number(d.birds||0)){
+  alert("الكمية المباعة أكبر من عدد الطيور المسجل. راجع العدد أولًا.");
+  return;
+ }
+
+ if(type==="علف" && qty>Number(d.feed||0)){
+  alert("الكمية المباعة أكبر من رصيد العلف.");
+  return;
+ }
+
+ let toolItem=null;
+ if(type==="أدوات"){
+  toolItem=(d.tools||[]).find(x=>String(x.id)===document.getElementById("saleTool").value);
+  if(!toolItem){alert("أضف صنفًا للأدوات أولًا ثم اختره للبيع.");return;}
+  if(qty>Number(toolItem.qty||0)){alert("الكمية المباعة أكبر من رصيد الصنف.");return;}
+ }
+
+ let sale={
+  id:Date.now(),
+  date:date,
+  type:type,
+  qty:qty,
+  price:price,
+  total:total,
+  paid:paid,
+  due:total-paid,
+  note:note
+ };
+
+ d.sales.push(sale);
+ d.cash=(Number(d.cash)||0)+paid;
+
+ if(paid>0){
+  d.incomes.push({
+   date:date,
+   category:"تحصيل بيع "+type,
+   amount:paid,
+   note:note
+  });
+
+  d.cashLogs.unshift({
+   date:date,
+   type:"income",
+   category:"تحصيل بيع "+type,
+   amount:paid,
+   note:note
+  });
+ }
+
+ if(type==="طيور"){
+  d.birds=Number(d.birds||0)-qty;
+ }
+
+ if(type==="علف"){
+  d.feed=Number((Number(d.feed||0)-qty).toFixed(3));
+ }
+ if(type==="أدوات" && toolItem){
+  toolItem.qty=Number((Number(toolItem.qty||0)-qty).toFixed(3));
+  d.toolMoves=d.toolMoves||[];
+  d.toolMoves.unshift({date,type:"بيع",name:toolItem.name,qty,unit:toolItem.unit,price,total,note});
+ }
+
+ d.logs.push({
+  date:date,
+  type:"sale",
+  name:type,
+  qty:qty,
+  total:total,
+  paid:paid
+ });
+
+ localStorage.setItem(KEY,JSON.stringify(d));
+
+ document.getElementById("saleQty").value="";
+ document.getElementById("salePrice").value="";
+ document.getElementById("salePaid").value="0";
+ document.getElementById("saleNote").value="";
+ updateSaleToolOptions();
+ refresh();
+ alert("تم تسجيل البيع وتحديث الخزنة.");
+}
+
+function refresh(){
+ d=getData();
+
+ document.getElementById("birds").textContent=Number(d.birds)||0;
+ document.getElementById("feed").textContent=money(d.feed);
+ document.getElementById("cash").textContent=money(d.cash);
+
+ let income=(d.incomes||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
+ let expenses=(d.expenses||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
+
+ document.getElementById("income").textContent=money(income);
+ document.getElementById("expenses").textContent=money(expenses);
+ document.getElementById("net").textContent=money(income-expenses);
+
+ let list=document.getElementById("salesList");
+ list.innerHTML="";
+
+ if(!(d.sales||[]).length){
+  list.textContent="لا توجد مبيعات.";
+ }else{
+  d.sales.slice().reverse().forEach(s=>{
+   let div=document.createElement("div");
+   div.className="item";
+   div.textContent=
+    s.date+" — "+s.type+"\n"+
+    "الكمية: "+s.qty+"\n"+
+    "إجمالي البيع: "+money(s.total)+" جنيه\n"+
+    "المحصل: "+money(s.paid)+" جنيه\n"+
+    "المتبقي عند المشتري: "+money(s.due)+" جنيه\n"+
+    (s.note||"");
+   list.appendChild(div);
+  });
+ }
+}
+
+function getReportRows(){
+ d=getData();
+ let type=document.getElementById("reportType").value;
+ let rows=[];
+
+ function add(date,category,qty,amount,note){
+  rows.push({
+   date:date||"",
+   category:category||"",
+   qty:qty??"",
+   amount:Number(amount)||0,
+   note:note||""
+  });
+ }
+
+ if(type==="all"||type==="income"){
+  (d.incomes||[]).forEach(x=>add(x.date,x.category,"",x.amount,x.note));
+ }
+
+ if(type==="all"||type==="expense"){
+  (d.expenses||[]).forEach(x=>add(x.date,x.category,"",x.amount,x.note));
+ }
+
+ if(type==="all"||type==="feed"){
+  (d.feedLogs||[]).forEach(x=>add(x.date,"استهلاك علف",x.feed,x.cost||0,x.note));
+  if(type==="feed")(d.feedPurchases||[]).forEach(x=>add(x.date,"شراء علف",x.qty,x.cost??x.total,x.supplier||x.note));
+ }
+
+ if(type==="all"||type==="health"){
+  (d.health||[]).forEach(x=>add(x.date,({health:"ملاحظة صحية",vaccine:"تحصين",treatment:"علاج",death:"نفوق"}[x.type]||x.type),x.count??x.qty,"",(x.subject?x.subject+"؛ ":"")+(x.note||"")));
+  if(type==="all"||type==="health")(d.deaths||[]).forEach(x=>{const duplicate=(d.health||[]).some(h=>h.type==="death"&&h.date===x.date&&Number(h.count)===Number(x.count));if(!duplicate)add(x.date,"نفوق",x.count,"",x.note||x.subject);});
+ }
+
+ if(type==="all"||type==="tools"){
+  (d.toolMoves||[]).filter(x=>type==="tools" || x.type!=="شراء").forEach(x=>add(x.date,x.type+" - "+x.name,x.qty,x.total,x.note));
+ }
+
+ if(type==="all"){
+  (d.sales||[]).forEach(x=>add(x.date,"بيع "+x.type,x.qty,0,"إجمالي البيع: "+money(x.total)+"؛ المحصل: "+money(x.paid)+"؛ المتبقي: "+money(x.due)+"؛ "+(x.note||"")));
+ }
+
+ return rows;
+}
+
+function showReport(){
+ let rows=getReportRows();
+ let div=document.getElementById("report");
+ div.innerHTML="";
+
+ if(!rows.length){
+  div.textContent="لا توجد بيانات لهذا التقرير.";
+  return;
+ }
+
+ let total=0;
+ rows.forEach(r=>{
+  total+=r.amount;
+  let item=document.createElement("div");
+  item.className="item";
+  item.textContent=
+   r.date+" — "+r.category+"\n"+
+   (r.qty!==""?"الكمية: "+r.qty+"\n":"")+
+   "القيمة: "+money(r.amount)+" جنيه\n"+
+   r.note;
+  div.appendChild(item);
+ });
+
+ let sum=document.createElement("p");
+ sum.textContent="مجموع القيم الظاهرة: "+money(total)+" جنيه";
+ div.appendChild(sum);
+}
+
+function exportReport(){
+ let rows=getReportRows();
+ if(!rows.length){
+  alert("لا توجد بيانات لتصديرها.");
+  return;
+ }
+
+ let csv="\uFEFFالتاريخ,البند,الكمية,القيمة بالجنيه,ملاحظات\n";
+ rows.forEach(r=>{
+  let vals=[r.date,r.category,r.qty,r.amount,r.note];
+  csv+=vals.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")+"\n";
+ });
+
+ let blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
+ let url=URL.createObjectURL(blob);
+ let a=document.createElement("a");
+ a.href=url;
+ a.download="تقرير_مزرعة_جدو_سيد.csv";
+ a.click();
+ URL.revokeObjectURL(url);
+}
+
+updateSaleToolOptions();
+refresh();
+</script>
+</body>
+</html>

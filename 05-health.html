@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الصحة والتحصينات</title>
+<style>
+body{font-family:Arial;background:#f1f5f2;margin:0;color:#173b2a}
+header{background:#166534;color:white;padding:16px;text-align:center}
+main{max-width:600px;margin:auto;padding:14px}
+.card{background:white;padding:15px;border-radius:12px;margin-bottom:12px}
+label{display:block;margin-top:12px}
+input,select,textarea{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border:1px solid #bbb;border-radius:8px;font-size:16px}
+button{width:100%;padding:13px;margin-top:12px;border:0;border-radius:8px;background:#166534;color:white;font-size:16px}
+</style>
+</head>
+<body>
+<header><h2>الصحة والتحصينات</h2>مزرعة جدو سيد</header>
+<main>
+<div class="card">
+<h3>تسجيل حالة صحية أو تحصين</h3>
+<label>التاريخ</label>
+<input id="date" type="date">
+<label>نوع السجل</label>
+<select id="type">
+<option value="health">ملاحظة صحية</option>
+<option value="vaccine">تحصين</option>
+<option value="treatment">علاج موصوف بيطريًا</option>
+<option value="death">نفوق</option>
+</select>
+<label>عدد الطيور المتأثرة أو النافقة</label>
+<input id="count" type="number" min="0" step="1" value="0">
+<label>الأعراض أو اسم التحصين أو العلاج</label>
+<input id="subject" placeholder="اكتب التفاصيل">
+<label>الإجراء أو الملاحظات</label>
+<textarea id="note" rows="3"></textarea>
+<button onclick="save()">حفظ السجل</button>
+<p id="msg"></p>
+</div>
+<div class="card">
+<h3>السجل الصحي</h3>
+<div id="records">لا توجد سجلات.</div>
+</div>
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+</main>
+<script>
+function getDB(){
+ return JSON.parse(localStorage.getItem('farm45')||
+ '{"birds":0,"start":"","feed":0,"cash":0,"logs":[]}');
+}
+function putDB(d){localStorage.setItem('farm45',JSON.stringify(d));}
+function today(){const x=new Date();return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+document.getElementById('date').value=today();
+
+function save(){
+ const date=document.getElementById('date').value;
+ const type=document.getElementById('type').value;
+ const count=Number(document.getElementById('count').value);
+ const subject=document.getElementById('subject').value.trim();
+ const note=document.getElementById('note').value.trim();
+ if(!date||!Number.isInteger(count)||count<0||!subject){
+  alert('أدخل التاريخ والتفاصيل والعدد الصحيح');return;
+ }
+ const d=getDB();
+ if(type==='death'){
+  if(count<1){alert('أدخل عدد الطيور النافقة');return;}
+  if(count>Number(d.birds||0)){
+   alert('العدد أكبر من الطيور الحية المسجلة');return;
+  }
+  d.birds-=count;
+  d.deaths=d.deaths||[];
+  d.deaths.push({date,count,subject,note});
+ }
+ d.health=d.health||[];
+ const entry={id:Date.now(),date,type,count,subject,note};
+ d.health.push(entry);
+ d.logs=d.logs||[];
+ d.logs.push({date:date, type:type==='death'?'death':type, amount:count,note:subject});
+ putDB(d);
+ document.getElementById('msg').textContent=
+ type==='death'?'تم تسجيل النفوق وتحديث عدد الطيور.':'تم حفظ السجل.';
+ document.getElementById('count').value='0';
+ document.getElementById('subject').value='';
+ document.getElementById('note').value='';
+ render();
+}
+function render(){
+ const d=getDB(),arr=(d.health||[]).slice().reverse();
+ const box=document.getElementById('records');
+ box.replaceChildren();
+ if(!arr.length){box.textContent='لا توجد سجلات.';return;}
+ arr.forEach(r=>{
+  const p=document.createElement('p');
+  p.style.cssText='border-bottom:1px solid #ddd;padding:9px 0;line-height:1.7';
+  p.textContent=r.date+' | '+({
+   health:'ملاحظة صحية',vaccine:'تحصين',
+   treatment:'علاج',death:'نفوق'
+  }[r.type]||r.type)+' | العدد: '+r.count+
+  ' | '+r.subject+(r.note?' | '+r.note:'');
+  box.appendChild(p);
+ });
+}
+render();
+</script>
+</body>
+</html>

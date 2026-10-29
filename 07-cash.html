@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الخزنة - مزرعة جدو سيد</title>
+<style>
+body{font-family:Arial;background:#f0fdf4;margin:0;padding:14px;color:#166534}
+h2{text-align:center}
+.card{background:white;padding:14px;margin:12px 0;border-radius:12px;box-shadow:0 2px 6px #ccc}
+label{display:block;margin-top:10px}
+input,select,textarea,button{width:100%;box-sizing:border-box;padding:11px;margin-top:5px;border-radius:7px;border:1px solid #bbb;font-size:16px}
+button{background:#166534;color:white;border:0;margin-top:14px}
+.balance{font-size:25px;font-weight:bold;text-align:center;color:#166534}
+.small{font-size:13px;color:#555}
+</style>
+</head>
+<body>
+
+<h2>💰 خزنة مزرعة جدو سيد</h2>
+
+<div class="card">
+<div>الرصيد الحالي</div>
+<div class="balance" id="balance">0 جنيه</div>
+<div class="small">الرصيد السالب يعني أن المدفوعات المسجلة أكبر من الرصيد المضاف.</div>
+</div>
+
+<div class="card">
+<h3>تسجيل رصيد افتتاحي</h3>
+<p id="openingStatus" class="small"></p>
+<label>المبلغ الموجود في الخزنة بالجنيه</label>
+<input id="openingAmount" type="number" min="0" step="0.01" placeholder="مثال: 3000">
+<button id="openingBtn" onclick="setOpening()">تسجيل الرصيد الافتتاحي</button>
+</div>
+
+<div class="card">
+<h3>تسجيل حركة مالية</h3>
+
+<label>التاريخ</label>
+<input id="date" type="date">
+
+<label>نوع الحركة</label>
+<select id="type" onchange="changeType()">
+<option value="income">إيراد / مبلغ داخل</option>
+<option value="expense">مصروف جديد</option>
+<option value="credit">سداد دين علف</option>
+</select>
+
+<div id="normalFields">
+<label>البند</label>
+<input id="category" placeholder="مثال: بيع أرانب أو علاج">
+</div>
+
+<div id="creditFields" style="display:none">
+<label>فاتورة العلف الآجلة</label>
+<select id="purchase"></select>
+<p id="dueInfo" class="small"></p>
+</div>
+
+<label>المبلغ بالجنيه</label>
+<input id="amount" type="number" min="0.01" step="0.01" placeholder="اكتب المبلغ">
+
+<label>ملاحظات</label>
+<textarea id="note" rows="2" placeholder="ملاحظات اختيارية"></textarea>
+
+<button onclick="saveMovement()">حفظ الحركة</button>
+</div>
+
+<div class="card">
+<h3>آخر الحركات المالية</h3>
+<div id="history">لا توجد حركات مسجلة.</div>
+</div>
+
+<button onclick="location.href='index.html'">العودة للرئيسية</button>
+
+<script>
+const KEY = "farm45";
+
+function getData(){
+  try{
+    return JSON.parse(localStorage.getItem(KEY)) || {
+      birds:0,start:"",feed:0,cash:0,logs:[]
+    };
+  }catch(e){
+    alert("تعذر قراءة البيانات المحفوظة.");
+    return {birds:0,start:"",feed:0,cash:0,logs:[]};
+  }
+}
+
+let d = getData();
+
+function saveData(){
+  localStorage.setItem(KEY,JSON.stringify(d));
+}
+
+function money(n){
+  return (Number(n)||0).toFixed(2)+" جنيه";
+}
+
+function today(){
+  const x = new Date();
+  return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");
+}
+
+document.getElementById("date").value = today();
+
+function setOpening(){
+  d = getData();
+
+  if(d.cashInitialized){
+    alert("تم تسجيل الرصيد الافتتاحي من قبل. لن يتم تسجيله مرة ثانية.");
+    refresh();
+    return;
+  }
+
+  const amount = Number(document.getElementById("openingAmount").value);
+
+  if(!Number.isFinite(amount) || amount<0){
+    alert("اكتب رصيدًا صحيحًا.");
+    return;
+  }
+
+  // يضاف الرصيد إلى الرصيد الحالي حتى لا تُلغى
+  // المدفوعات المسجلة سابقًا.
+  d.cash = (Number(d.cash)||0) + amount;
+  d.cashInitialized = true;
+  d.cashLogs = d.cashLogs || [];
+  d.cashLogs.unshift({
+    date:today(),
+    type:"opening",
+    category:"رصيد افتتاحي",
+    amount:amount,
+    note:"إضافة الرصيد الافتتاحي"
+  });
+
+  saveData();
+  document.getElementById("openingAmount").value="";
+  refresh();
+  alert("تم تسجيل الرصيد الافتتاحي.");
+}
+
+function changeType(){
+  const type = document.getElementById("type").value;
+  document.getElementById("normalFields").style.display =
+    type==="credit" ? "none" : "block";
+  document.getElementById("creditFields").style.display =
+    type==="credit" ? "block" : "none";
+  updatePurchases();
+}
+
+function updatePurchases(){
+  d = getData();
+  const select = document.getElementById("purchase");
+  select.innerHTML = "";
+  let found = false;
+
+  (d.feedPurchases||[]).forEach((p,i)=>{
+    const due = Math.max(0,Number(p.due)||0);
+    if(due>0.009){
+      found = true;
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent =
+        (p.supplier || "مورد غير محدد")+
+        " — متبقي "+money(due)+
+        (p.date ? " — "+p.date : "");
+      select.appendChild(option);
+    }
+  });
+
+  if(!found){
+    const option = document.createElement("option");
+    option.value="";
+    option.textContent="لا توجد فواتير آجلة مستحقة";
+    select.appendChild(option);
+  }
+
+  showDue();
+}
+
+function showDue(){
+  d = getData();
+  const i = document.getElementById("purchase").value;
+  const p = (d.feedPurchases||[])[Number(i)];
+  document.getElementById("dueInfo").textContent = p
+    ? "المتبقي على الفاتورة: "+money(p.due)
+    : "لا توجد فاتورة محددة مستحقة.";
+}
+
+document.getElementById("purchase").addEventListener("change",showDue);
+
+function saveMovement(){
+  d = getData();
+
+  const type = document.getElementById("type").value;
+  const amount = Number(document.getElementById("amount").value);
+  const date = document.getElementById("date").value;
+  const note = document.getElementById("note").value.trim();
+  const category = document.getElementById("category").value.trim();
+
+  if(!date){
+    alert("اختر التاريخ.");
+    return;
+  }
+
+  if(!Number.isFinite(amount) || amount<=0){
+    alert("اكتب مبلغًا صحيحًا أكبر من صفر.");
+    return;
+  }
+
+  d.cash = Number(d.cash)||0;
+  d.cashLogs = d.cashLogs||[];
+  d.logs = d.logs||[];
+
+  if(type==="income"){
+    if(!category){
+      alert("اكتب مصدر الإيراد.");
+      return;
+    }
+
+    d.cash += amount;
+    d.incomes = d.incomes||[];
+    d.incomes.push({date,category,amount,note});
+
+    d.cashLogs.unshift({
+      date,type:"income",category,amount,note
+    });
+
+  }else if(type==="expense"){
+    if(!category){
+      alert("اكتب بند المصروف.");
+      return;
+    }
+
+    d.cash -= amount;
+    d.expenses = d.expenses||[];
+    d.expenses.push({date,category,amount,note});
+
+    d.cashLogs.unshift({
+      date,type:"expense",category,amount,note
+    });
+
+  }else if(type==="credit"){
+    const index = document.getElementById("purchase").value;
+    const p = (d.feedPurchases||[])[Number(index)];
+
+    if(index==="" || !p || Number(p.due)<=0){
+      alert("اختر فاتورة آجلة مستحقة.");
+      return;
+    }
+
+    const due = Math.max(0,Number(p.due)||0);
+
+    if(amount>due+0.001){
+      alert("مبلغ السداد أكبر من الدين المتبقي: "+money(due));
+      return;
+    }
+
+    if(amount>d.cash){
+      if(!confirm("الرصيد الحالي لا يكفي. هل تريد تسجيل السداد وجعل الرصيد سالبًا؟")){
+        return;
+      }
+    }
+
+    d.cash -= amount;
+    p.paid = (Number(p.paid)||0)+amount;
+    p.due = Math.max(0,due-amount);
+
+    d.cashLogs.unshift({
+      date,
+      type:"credit",
+      category:"سداد دين علف",
+      amount,
+      note:note+" | "+(p.supplier||"مورد غير محدد")
+    });
+  }
+
+  saveData();
+
+  document.getElementById("amount").value="";
+  document.getElementById("category").value="";
+  document.getElementById("note").value="";
+
+  refresh();
+  alert("تم حفظ الحركة.");
+}
+
+function refresh(){
+  d = getData();
+  document.getElementById("balance").textContent =
+    money(d.cash);
+
+  const initialized = !!d.cashInitialized;
+  document.getElementById("openingStatus").textContent =
+    initialized
+    ? "تم تسجيل الرصيد الافتتاحي سابقًا."
+    : "سجل المبلغ الموجود بالخزنة عند بداية استخدام التطبيق.";
+
+  document.getElementById("openingBtn").disabled = initialized;
+  document.getElementById("openingBtn").style.opacity =
+    initialized ? "0.5" : "1";
+
+  const history = document.getElementById("history");
+  history.innerHTML = "";
+  const items = (d.cashLogs||[]).slice(0,30);
+
+  if(!items.length){
+    history.textContent="لا توجد حركات مسجلة.";
+  }else{
+    items.forEach(item=>{
+      const div = document.createElement("div");
+      div.className="card";
+
+      const label = {
+        opening:"رصيد افتتاحي",
+        income:"إيراد",
+        expense:"مصروف",
+        credit:"سداد دين علف"
+      }[item.type] || item.type;
+
+      div.textContent =
+        (item.date||"")+"\n"+
+        label+" — "+(item.category||"")+"\n"+
+        money(item.amount)+"\n"+
+        (item.note||"");
+
+      history.appendChild(div);
+    });
+  }
+
+  updatePurchases();
+}
+
+refresh();
+</script>
+</body>
+</html>
